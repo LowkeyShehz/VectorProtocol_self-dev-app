@@ -1,0 +1,330 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:sliver_tools/sliver_tools.dart';
+import '../data/reminder_provider.dart';
+import '../domain/reminder_model.dart';
+import '../services/notification_service.dart';
+
+class ReminderScreen extends ConsumerWidget {
+  const ReminderScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reminderAsync = ref.watch(reminderControllerProvider);
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: Colors.black,
+            floating: true,
+            title: Text(
+              'REMINDERS',
+              style: GoogleFonts.jetBrainsMono(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2.0,
+              ),
+            ),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_active),
+                onPressed: () {
+                  NotificationService().requestPermissions();
+                },
+              ),
+            ],
+          ),
+          reminderAsync.when(
+            data: (reminders) {
+              if (reminders.isEmpty) {
+                return const SliverFillRemaining(child: _EmptyState());
+              }
+
+              final groupedReminders = <String, List<Reminder>>{};
+              final sortedReminders = List<Reminder>.from(reminders)
+                ..sort((a, b) => a.remindAt.compareTo(b.remindAt));
+
+              for (var reminder in sortedReminders) {
+                final key = DateFormat.yMMMM().format(reminder.remindAt);
+                if (!groupedReminders.containsKey(key)) {
+                  groupedReminders[key] = [];
+                }
+                groupedReminders[key]!.add(reminder);
+              }
+
+              return MultiSliver(
+                children: groupedReminders.entries.map((entry) {
+                  return SliverStickyHeader(
+                    header: _StickyHeader(title: entry.key),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final item = entry.value[index];
+                          return _ReminderTile(item: item)
+                              .animate()
+                              .fadeIn(delay: (30 * index).ms)
+                              .slideX();
+                        },
+                        childCount: entry.value.length,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (err, stack) => SliverFillRemaining(
+              child: Center(child: Text('Error: $err')),
+            ),
+          ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddReminderModal(context),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.add, color: Colors.black),
+      ),
+    );
+  }
+
+  void _showAddReminderModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF111111),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => const _CreateReminderModal(),
+    );
+  }
+}
+
+class _StickyHeader extends StatelessWidget {
+  final String title;
+  const _StickyHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 60,
+      color: Colors.black.withOpacity(0.9),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        title.toUpperCase(),
+        style: GoogleFonts.jetBrainsMono(
+          color: Theme.of(context).colorScheme.primary,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReminderTile extends ConsumerWidget {
+  final Reminder item;
+  const _ReminderTile({required this.item});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final isPast = item.remindAt.isBefore(DateTime.now());
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+            left: BorderSide(color: isPast ? Colors.grey : primary, width: 4)),
+      ),
+      child: Row(
+        children: [
+          Column(
+            children: [
+              Text(
+                DateFormat('HH:mm').format(item.remindAt),
+                style: GoogleFonts.jetBrainsMono(
+                  color: isPast ? Colors.white38 : Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                DateFormat('MMM d').format(item.remindAt),
+                style: GoogleFonts.inter(
+                  color: Colors.white24,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Text(
+              item.title,
+              style: GoogleFonts.inter(
+                color: item.isActive ? Colors.white : Colors.white24,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                decoration: !item.isActive ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+          Switch.adaptive(
+            value: item.isActive,
+            onChanged: (val) {
+              ref
+                  .read(reminderControllerProvider.notifier)
+                  .toggleReminder(item.id);
+            },
+            activeColor: primary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.notifications_off_outlined,
+              size: 64, color: Colors.white.withOpacity(0.1)),
+          const SizedBox(height: 16),
+          Text(
+            'NO ACTIVE SIGNALS',
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white54,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreateReminderModal extends ConsumerStatefulWidget {
+  const _CreateReminderModal();
+
+  @override
+  ConsumerState<_CreateReminderModal> createState() =>
+      _CreateReminderModalState();
+}
+
+class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
+  final _titleController = TextEditingController();
+  DateTime _scheduledTime = DateTime.now().add(const Duration(minutes: 5));
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        left: 24,
+        right: 24,
+        top: 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'NEW SIGNAL',
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _titleController,
+            style: GoogleFonts.inter(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Reminder Title',
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            autofocus: true,
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 180,
+            child: CupertinoTheme(
+              data: const CupertinoThemeData(
+                brightness: Brightness.dark,
+                textTheme: CupertinoTextThemeData(
+                  pickerTextStyle: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.dateAndTime,
+                initialDateTime: _scheduledTime,
+                onDateTimeChanged: (val) {
+                  setState(() => _scheduledTime = val);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_titleController.text.isEmpty) return;
+
+                ref.read(reminderControllerProvider.notifier).addReminder(
+                      _titleController.text,
+                      _scheduledTime,
+                    );
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'SCHEDULE SIGNAL',
+                style: GoogleFonts.jetBrainsMono(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+          ).animate().slideY(begin: 0.5, end: 0, delay: 200.ms),
+        ],
+      ),
+    );
+  }
+}
