@@ -3,15 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ScaffoldWithNavigation extends StatelessWidget {
+import 'package:level_up/src/features/reminders/services/notification_service.dart';
+
+class ScaffoldWithNavigation extends StatefulWidget {
   const ScaffoldWithNavigation({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   @override
+  State<ScaffoldWithNavigation> createState() => _ScaffoldWithNavigationState();
+}
+
+class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
+  @override
+  void initState() {
+    super.initState();
+    // Request permissions on app launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService().requestPermissions();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
@@ -41,11 +57,11 @@ class ScaffoldWithNavigation extends StatelessWidget {
           }),
         ),
         child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
+          selectedIndex: widget.navigationShell.currentIndex,
           onDestinationSelected: (index) {
-            navigationShell.goBranch(
+            widget.navigationShell.goBranch(
               index,
-              initialLocation: index == navigationShell.currentIndex,
+              initialLocation: index == widget.navigationShell.currentIndex,
             );
           },
           backgroundColor: Colors.black, // Cyberpunk black

@@ -1,0 +1,46 @@
+Running Gradle task 'assembleRelease'...                        
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Invalid depfile: /home/shehz/Projects/selfDevApp/level_up/.dart_tool/flutter_build/ca1ea97eb4227276282b8292cb60dc8a/kernel_snapshot_program.d
+Font asset "CupertinoIcons.ttf" was tree-shaken, reducing it from 257628 to 2352 bytes (99.1% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 4192 bytes (99.7% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+warning: [options] source value 8 is obsolete and will be removed in a future release
+warning: [options] target value 8 is obsolete and will be removed in a future release
+warning: [options] To suppress warnings about obsolete options, use -Xlint:-options.
+3 warnings
+warning: [options] source value 8 is obsolete and will be removed in a future release
+warning: [options] target value 8 is obsolete and will be removed in a future release
+warning: [options] To suppress warnings about obsolete options, use -Xlint:-options.
+3 warnings
+warning: [options] source value 8 is obsolete and will be removed in a future release
+warning: [options] target value 8 is obsolete and will be removed in a future release
+warning: [options] To suppress warnings about obsolete options, use -Xlint:-options.
+3 warnings
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':isar_flutter_libs:verifyReleaseResources'.
+> A failure occurred while executing com.android.build.gradle.tasks.VerifyLibraryResourcesTask$Action
+   > Android resource linking failed
+     ERROR: /home/shehz/Projects/selfDevApp/level_up/build/isar_flutter_libs/intermediates/merged_res/release/mergeReleaseResources/values/values.xml:194: AAPT: error: resource android:attr/lStar not found.
+
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 28s
+Running Gradle task 'assembleRelease'...                           88.8s
+Gradle task assembleRelease failed with exit code 1
