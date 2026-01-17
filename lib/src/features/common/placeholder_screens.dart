@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class JournalScreen extends StatelessWidget {
-  const JournalScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const _PlaceholderView(title: 'JOURNAL', icon: Icons.book_outlined);
-}
-
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
   @override

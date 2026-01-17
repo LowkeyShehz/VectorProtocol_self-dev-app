@@ -1,3 +1,7 @@
+import 'package:isar/isar.dart';
+
+part 'habit_model.g.dart';
+
 enum HabitType { good, bad }
 
 enum HabitFrequency { daily, weekly, monthly }
@@ -14,21 +18,37 @@ enum HabitCategory {
   other
 }
 
+@collection
 class Habit {
-  final String id;
-  final String title;
-  final HabitType type;
-  final HabitFrequency frequency;
-  final HabitWeeklyType? weeklyType; // Null if not weekly
-  final List<int> targetDays; // 0 = Mon, 6 = Sun
-  final int weeklyCount; // For "countPerWeek" (e.g. 3 times a week)
-  final int color; // Hex int
-  final HabitCategory category;
-  final List<DateTime> completedDates;
-  final DateTime createdAt;
+  Id id = Isar.autoIncrement;
 
-  const Habit({
-    required this.id,
+  late String title;
+
+  @Enumerated(EnumType.name)
+  late HabitType type;
+
+  @Enumerated(EnumType.name)
+  late HabitFrequency frequency;
+
+  @Enumerated(EnumType.name)
+  HabitWeeklyType? weeklyType; // Null if not weekly
+
+  late List<int> targetDays; // 0 = Mon, 6 = Sun
+
+  late int weeklyCount; // For "countPerWeek" (e.g. 3 times a week)
+
+  late int color; // Hex int
+
+  @Enumerated(EnumType.name)
+  late HabitCategory category;
+
+  late List<DateTime> completedDates;
+
+  late DateTime createdAt;
+
+  Habit(); // Default constructor for Isar
+
+  Habit.create({
     required this.title,
     required this.type,
     required this.frequency,
@@ -41,13 +61,15 @@ class Habit {
     required this.createdAt,
   });
 
+  // Helper method for logic
   bool isCompletedOn(DateTime date) {
     return completedDates.any((d) =>
         d.year == date.year && d.month == date.month && d.day == date.day);
   }
 
+  // CopyWith mainly for updating local state before saving,
+  // though with Isar we usually just modify the object and put().
   Habit copyWith({
-    String? id,
     String? title,
     HabitType? type,
     HabitFrequency? frequency,
@@ -59,18 +81,18 @@ class Habit {
     List<DateTime>? completedDates,
     DateTime? createdAt,
   }) {
-    return Habit(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      type: type ?? this.type,
-      frequency: frequency ?? this.frequency,
-      weeklyType: weeklyType ?? this.weeklyType,
-      targetDays: targetDays ?? this.targetDays,
-      weeklyCount: weeklyCount ?? this.weeklyCount,
-      color: color ?? this.color,
-      category: category ?? this.category,
-      completedDates: completedDates ?? this.completedDates,
-      createdAt: createdAt ?? this.createdAt,
-    );
+    final habit = Habit()
+      ..id = this.id
+      ..title = title ?? this.title
+      ..type = type ?? this.type
+      ..frequency = frequency ?? this.frequency
+      ..weeklyType = weeklyType ?? this.weeklyType
+      ..targetDays = targetDays ?? this.targetDays
+      ..weeklyCount = weeklyCount ?? this.weeklyCount
+      ..color = color ?? this.color
+      ..category = category ?? this.category
+      ..completedDates = completedDates ?? this.completedDates
+      ..createdAt = createdAt ?? this.createdAt;
+    return habit;
   }
 }

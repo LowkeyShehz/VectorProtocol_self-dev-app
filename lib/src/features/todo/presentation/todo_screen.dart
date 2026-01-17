@@ -135,7 +135,7 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddTodoModal(BuildContext context) {
+  void _showAddTodoModal(BuildContext context, {TodoItem? existingItem}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -143,7 +143,7 @@ class TodoScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => const _CreateTodoModal(),
+      builder: (context) => _CreateTodoModal(existingItem: existingItem),
     );
   }
 }
@@ -181,84 +181,101 @@ class _TodoTile extends ConsumerWidget {
     final isOverdue = !item.isCompleted &&
         item.dueDate.isBefore(DateTime.now().subtract(const Duration(days: 1)));
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: isOverdue
-            ? Border.all(color: Colors.redAccent.withOpacity(0.5))
-            : null,
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: InkWell(
-          onTap: () {
-            ref.read(todoControllerProvider.notifier).toggleCompletion(item.id);
-          },
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: item.isCompleted
-                    ? Colors.grey
-                    : (isOverdue
-                        ? Colors.redAccent
-                        : Theme.of(context).colorScheme.primary),
-                width: 2,
-              ),
-              color: item.isCompleted
-                  ? Colors.grey.withOpacity(0.2)
-                  : Colors.transparent,
-            ),
-            child: item.isCompleted
-                ? const Icon(Icons.check, size: 16, color: Colors.grey)
-                : null,
+    return GestureDetector(
+      onLongPress: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: const Color(0xFF111111),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
+          builder: (context) => _CreateTodoModal(existingItem: item),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: isOverdue
+              ? Border.all(color: Colors.redAccent.withOpacity(0.5))
+              : null,
         ),
-        title: Text(
-          item.title,
-          style: GoogleFonts.inter(
-            color: item.isCompleted
-                ? Colors.white24
-                : (isOverdue ? Colors.redAccent : Colors.white),
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (item.description != null && item.description!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  item.description!,
-                  style: GoogleFonts.inter(color: Colors.white54, fontSize: 13),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: InkWell(
+            onTap: () {
+              ref
+                  .read(todoControllerProvider.notifier)
+                  .toggleCompletion(item.id);
+            },
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: item.isCompleted
+                      ? Colors.grey
+                      : (isOverdue
+                          ? Colors.redAccent
+                          : Theme.of(context).colorScheme.primary),
+                  width: 2,
                 ),
+                color: item.isCompleted
+                    ? Colors.grey.withOpacity(0.2)
+                    : Colors.transparent,
               ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Icon(Icons.calendar_today,
-                    size: 12,
-                    color: isOverdue ? Colors.redAccent : Colors.white24),
-                const SizedBox(width: 4),
-                Text(
-                  DateFormat.MMMd().format(item.dueDate),
-                  style: GoogleFonts.jetBrainsMono(
-                    color: isOverdue ? Colors.redAccent : Colors.white38,
-                    fontSize: 11,
+              child: item.isCompleted
+                  ? const Icon(Icons.check, size: 16, color: Colors.grey)
+                  : null,
+            ),
+          ),
+          title: Text(
+            item.title,
+            style: GoogleFonts.inter(
+              color: item.isCompleted
+                  ? Colors.white24
+                  : (isOverdue ? Colors.redAccent : Colors.white),
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              decoration: item.isCompleted ? TextDecoration.lineThrough : null,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (item.description != null && item.description!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    item.description!,
+                    style:
+                        GoogleFonts.inter(color: Colors.white54, fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ],
-            ),
-          ],
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today,
+                      size: 12,
+                      color: isOverdue ? Colors.redAccent : Colors.white24),
+                  const SizedBox(width: 4),
+                  Text(
+                    DateFormat.MMMd().format(item.dueDate),
+                    style: GoogleFonts.jetBrainsMono(
+                      color: isOverdue ? Colors.redAccent : Colors.white38,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -291,7 +308,8 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _CreateTodoModal extends ConsumerStatefulWidget {
-  const _CreateTodoModal();
+  final TodoItem? existingItem;
+  const _CreateTodoModal({this.existingItem});
 
   @override
   ConsumerState<_CreateTodoModal> createState() => _CreateTodoModalState();
@@ -301,6 +319,16 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingItem != null) {
+      _titleController.text = widget.existingItem!.title;
+      _descController.text = widget.existingItem!.description ?? '';
+      _selectedDate = widget.existingItem!.dueDate;
+    }
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -330,6 +358,7 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final isEditing = widget.existingItem != null;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -341,13 +370,28 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'NEW MISSION',
-            style: GoogleFonts.jetBrainsMono(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isEditing ? 'EDIT MISSION' : 'NEW MISSION',
+                style: GoogleFonts.jetBrainsMono(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (isEditing)
+                IconButton(
+                  onPressed: () {
+                    ref
+                        .read(todoControllerProvider.notifier)
+                        .deleteTodo(widget.existingItem!.id);
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                ),
+            ],
           ),
           const SizedBox(height: 24),
           TextField(
@@ -362,7 +406,7 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
                 borderSide: BorderSide.none,
               ),
             ),
-            autofocus: true,
+            autofocus: !isEditing,
           ),
           const SizedBox(height: 16),
           TextField(
@@ -410,15 +454,25 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
               onPressed: () {
                 if (_titleController.text.isEmpty) return;
 
-                final newItem = TodoItem(
-                  id: DateTime.now().toIso8601String(),
-                  title: _titleController.text,
-                  description: _descController.text,
-                  dueDate: _selectedDate,
-                  isCompleted: false,
-                );
+                if (isEditing) {
+                  final updatedItem = widget.existingItem!
+                    ..title = _titleController.text
+                    ..description = _descController.text
+                    ..dueDate = _selectedDate;
 
-                ref.read(todoControllerProvider.notifier).addTodo(newItem);
+                  ref
+                      .read(todoControllerProvider.notifier)
+                      .editTodo(updatedItem);
+                } else {
+                  final newItem = TodoItem.create(
+                    title: _titleController.text,
+                    description: _descController.text,
+                    dueDate: _selectedDate,
+                    isCompleted: false,
+                  );
+
+                  ref.read(todoControllerProvider.notifier).addTodo(newItem);
+                }
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
@@ -429,7 +483,7 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
                 ),
               ),
               child: Text(
-                'ACCEPT MISSION',
+                isEditing ? 'UPDATE MISSION' : 'ACCEPT MISSION',
                 style: GoogleFonts.jetBrainsMono(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,

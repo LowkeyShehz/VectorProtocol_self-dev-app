@@ -68,7 +68,7 @@ class HabitsScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddHabitModal(BuildContext context) {
+  void _showAddHabitModal(BuildContext context, {Habit? existingHabit}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -76,7 +76,7 @@ class HabitsScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => const _CreateHabitModal(),
+      builder: (context) => _CreateHabitModal(existingHabit: existingHabit),
     );
   }
 }
@@ -91,70 +91,83 @@ class _HabitCard extends ConsumerWidget {
     final color = isGood ? const Color(0xFF00FF9D) : Colors.redAccent;
     final isCompletedToday = habit.isCompletedOn(DateTime.now());
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border(left: BorderSide(color: color, width: 4)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  habit.title,
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    decoration:
-                        isCompletedToday ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _getFrequencyText(habit),
-                  style: GoogleFonts.jetBrainsMono(
-                    color: Colors.grey,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
+    return GestureDetector(
+      onLongPress: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: const Color(0xFF111111),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          // Interactive Check Button
-          InkWell(
-            onTap: () {
-              ref
-                  .read(habitControllerProvider.notifier)
-                  .toggleCompletion(habit.id, DateTime.now());
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isCompletedToday
-                    ? color.withOpacity(0.2)
-                    : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isCompletedToday ? color : Colors.white24,
-                  width: 2,
-                ),
-              ),
-              child: Icon(
-                Icons.check,
-                size: 20,
-                color: isCompletedToday ? color : Colors.transparent,
+          builder: (context) => _CreateHabitModal(existingHabit: habit),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border(left: BorderSide(color: color, width: 4)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    habit.title,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      decoration:
+                          isCompletedToday ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _getFrequencyText(habit),
+                    style: GoogleFonts.jetBrainsMono(
+                      color: Colors.grey,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            // Interactive Check Button
+            InkWell(
+              onTap: () {
+                ref
+                    .read(habitControllerProvider.notifier)
+                    .toggleCompletion(habit.id, DateTime.now());
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isCompletedToday
+                      ? color.withOpacity(0.2)
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isCompletedToday ? color : Colors.white24,
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  Icons.check,
+                  size: 20,
+                  color: isCompletedToday ? color : Colors.transparent,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -197,7 +210,8 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _CreateHabitModal extends ConsumerStatefulWidget {
-  const _CreateHabitModal();
+  final Habit? existingHabit;
+  const _CreateHabitModal({this.existingHabit});
 
   @override
   ConsumerState<_CreateHabitModal> createState() => _CreateHabitModalState();
@@ -213,8 +227,24 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
   int _targetDaysCount = 1;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.existingHabit != null) {
+      final h = widget.existingHabit!;
+      _titleController.text = h.title;
+      _type = h.type;
+      _frequency = h.frequency;
+      _category = h.category;
+      if (h.weeklyType != null) _weeklyType = h.weeklyType!;
+      if (h.targetDays.isNotEmpty) _selectedDays.addAll(h.targetDays);
+      _targetDaysCount = h.weeklyCount;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final isEditing = widget.existingHabit != null;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -227,13 +257,28 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'NEW PROTOCOL',
-            style: GoogleFonts.jetBrainsMono(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isEditing ? 'EDIT PROTOCOL' : 'NEW PROTOCOL',
+                style: GoogleFonts.jetBrainsMono(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (isEditing)
+                IconButton(
+                  onPressed: () {
+                    ref
+                        .read(habitControllerProvider.notifier)
+                        .deleteHabit(widget.existingHabit!.id);
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                ),
+            ],
           ),
           const SizedBox(height: 24),
 
@@ -251,7 +296,7 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
-            autofocus: true,
+            autofocus: !isEditing,
           ),
           const SizedBox(height: 24),
 
@@ -463,21 +508,39 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
               onPressed: () {
                 if (_titleController.text.isEmpty) return;
 
-                final newHabit = Habit(
-                  id: DateTime.now().toIso8601String(),
-                  title: _titleController.text,
-                  type: _type,
-                  frequency: _frequency,
-                  weeklyType:
-                      _frequency == HabitFrequency.weekly ? _weeklyType : null,
-                  targetDays: _selectedDays.toList(),
-                  weeklyCount: _targetDaysCount,
-                  color: _type == HabitType.good ? 0xFF00FF9D : 0xFFFF5252,
-                  category: _category,
-                  createdAt: DateTime.now(),
-                );
+                if (isEditing) {
+                  // We need to mutate the existing object
+                  final updatedHabit = widget.existingHabit!
+                    ..title = _titleController.text
+                    ..type = _type
+                    ..frequency = _frequency
+                    ..weeklyType =
+                        _frequency == HabitFrequency.weekly ? _weeklyType : null
+                    ..targetDays = _selectedDays.toList()
+                    ..weeklyCount = _targetDaysCount
+                    ..color = _type == HabitType.good ? 0xFF00FF9D : 0xFFFF5252
+                    ..category = _category;
 
-                ref.read(habitControllerProvider.notifier).addHabit(newHabit);
+                  ref
+                      .read(habitControllerProvider.notifier)
+                      .editHabit(updatedHabit);
+                } else {
+                  final newHabit = Habit.create(
+                    title: _titleController.text,
+                    type: _type,
+                    frequency: _frequency,
+                    weeklyType: _frequency == HabitFrequency.weekly
+                        ? _weeklyType
+                        : null,
+                    targetDays: _selectedDays.toList(),
+                    weeklyCount: _targetDaysCount,
+                    color: _type == HabitType.good ? 0xFF00FF9D : 0xFFFF5252,
+                    category: _category,
+                    createdAt: DateTime.now(),
+                  );
+
+                  ref.read(habitControllerProvider.notifier).addHabit(newHabit);
+                }
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
@@ -488,7 +551,7 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
                 ),
               ),
               child: Text(
-                'INITIALIZE PROTOCOL',
+                isEditing ? 'UPDATE PROTOCOL' : 'INITIALIZE PROTOCOL',
                 style: GoogleFonts.jetBrainsMono(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,

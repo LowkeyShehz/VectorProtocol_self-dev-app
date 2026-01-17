@@ -2,6 +2,13 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../habits/data/habit_provider.dart';
+import '../../habits/domain/habit_model.dart';
+import '../../todo/data/todo_provider.dart';
+import '../../todo/domain/todo_model.dart';
+import '../../reminders/data/reminder_provider.dart';
+import '../../reminders/domain/reminder_model.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -11,6 +18,10 @@ class DashboardScreen extends ConsumerWidget {
     // Cyberpunk colors
     final primaryColor = Theme.of(context).colorScheme.primary;
     final gridColor = Colors.white.withOpacity(0.1);
+
+    final habitsAsync = ref.watch(habitControllerProvider);
+    final todosAsync = ref.watch(todoControllerProvider);
+    final remindersAsync = ref.watch(reminderControllerProvider);
 
     return Scaffold(
       backgroundColor: Colors.black, // Deep dark background
@@ -125,22 +136,40 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _HabitItem(
-                label: 'Morning Meditation',
-                streak: 15,
-                primaryColor: primaryColor,
-              ),
-              const SizedBox(height: 8),
-              _HabitItem(
-                label: 'Read System Arch',
-                streak: 4,
-                primaryColor: primaryColor,
-              ),
-              const SizedBox(height: 8),
-              _HabitItem(
-                label: 'No Sugar',
-                streak: 21,
-                primaryColor: primaryColor,
+              habitsAsync.when(
+                data: (habits) {
+                  final pending = habits
+                      .where((h) {
+                        final isToday = h.isCompletedOn(DateTime.now());
+                        return !isToday; // Only show not completed purely for dashboard pending view? or maybe show top 3
+                      })
+                      .take(3)
+                      .toList(); // Show top 3 pending
+
+                  if (pending.isEmpty) {
+                    return const Text('All protocols executed.',
+                        style: TextStyle(color: Colors.white38));
+                  }
+
+                  return Column(
+                    children: pending
+                        .map((h) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: _HabitItem(
+                                label: h.title,
+                                streak:
+                                    0, // Need to implement streak logic later
+                                primaryColor: h.type == HabitType.good
+                                    ? primaryColor
+                                    : Colors.red,
+                              ),
+                            ))
+                        .toList(),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, s) => Text('Error: $e',
+                    style: const TextStyle(color: Colors.red)),
               ),
 
               const SizedBox(height: 30),
@@ -154,22 +183,29 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _TodoItem(
-                label: 'Complete Flutter architecture',
-                isDone: false,
-                primaryColor: primaryColor,
-              ),
-              const SizedBox(height: 8),
-              _TodoItem(
-                label: 'Read 20 pages of "Clean Code"',
-                isDone: true,
-                primaryColor: primaryColor,
-              ),
-              const SizedBox(height: 8),
-              _TodoItem(
-                label: 'Workout: 5km run',
-                isDone: false,
-                primaryColor: primaryColor,
+              todosAsync.when(
+                data: (todos) {
+                  final active =
+                      todos.where((t) => !t.isCompleted).take(3).toList();
+                  if (active.isEmpty) {
+                    return const Text('No missions active.',
+                        style: TextStyle(color: Colors.white38));
+                  }
+                  return Column(
+                    children: active
+                        .map((t) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: _TodoItem(
+                                label: t.title,
+                                isDone: t.isCompleted,
+                                primaryColor: primaryColor,
+                              ),
+                            ))
+                        .toList(),
+                  );
+                },
+                loading: () => const SizedBox(),
+                error: (_, __) => const SizedBox(),
               ),
 
               const SizedBox(height: 30),
@@ -183,16 +219,32 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _ReminderItem(
-                time: '14:00',
-                label: 'Team Sync Meeting',
-                primaryColor: primaryColor,
-              ),
-              const SizedBox(height: 8),
-              _ReminderItem(
-                time: '18:30',
-                label: 'Drink Water',
-                primaryColor: primaryColor,
+              remindersAsync.when(
+                data: (reminders) {
+                  final incoming = reminders
+                      .where((r) =>
+                          r.isActive && r.remindAt.isAfter(DateTime.now()))
+                      .take(3)
+                      .toList();
+                  if (incoming.isEmpty) {
+                    return const Text('No signals detected.',
+                        style: TextStyle(color: Colors.white38));
+                  }
+                  return Column(
+                    children: incoming
+                        .map((r) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: _ReminderItem(
+                                time: DateFormat('HH:mm').format(r.remindAt),
+                                label: r.title,
+                                primaryColor: primaryColor,
+                              ),
+                            ))
+                        .toList(),
+                  );
+                },
+                loading: () => const SizedBox(),
+                error: (_, __) => const SizedBox(),
               ),
               const SizedBox(height: 80), // Bottom padding for scrolling
             ],

@@ -5,9 +5,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:level_up/src/features/common/placeholder_screens.dart';
 import 'package:level_up/src/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:level_up/src/features/habits/presentation/habits_screen.dart';
-import 'package:level_up/src/features/todo/presentation/todo_screen.dart';
+import 'package:level_up/src/features/journal/presentation/journal_screen.dart';
 import 'package:level_up/src/features/reminders/presentation/reminder_screen.dart';
 import 'package:level_up/src/features/shell/presentation/scaffold_with_navigation.dart';
+import 'package:level_up/src/features/todo/presentation/todo_screen.dart';
 
 part 'app_router.g.dart';
 

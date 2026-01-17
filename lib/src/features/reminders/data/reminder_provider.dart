@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:math';
+import 'package:isar/isar.dart';
+import 'package:level_up/src/features/common/data/isar_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../domain/reminder_model.dart';
 import '../services/notification_service.dart';
@@ -9,84 +10,100 @@ part 'reminder_provider.g.dart';
 @riverpod
 class ReminderController extends _$ReminderController {
   @override
-  FutureOr<List<Reminder>> build() {
-    // Initial mock data
-    return [
-      Reminder(
-        id: '1',
-        intId: 1001,
-        title: 'Team Sync Meeting',
-        remindAt: DateTime.now().add(const Duration(hours: 2)),
-        isActive: true,
-      ),
-      Reminder(
-        id: '2',
-        intId: 1002,
-        title: 'Drink Water',
-        remindAt: DateTime.now().add(const Duration(hours: 6)),
-        isActive: true,
-      ),
-    ];
+  FutureOr<List<Reminder>> build() async {
+    final isar = await ref.watch(isarDbProvider.future);
+    return isar.reminders.where().findAll();
   }
 
-  Future<void> addReminder(String title, DateTime remindAt) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await Future.delayed(const Duration(milliseconds: 300));
+  Future<void> addReminder(String title, DateTime remindAt,
+      {String? imagePath}) async {
+    final isar = await ref.watch(isarDbProvider.future);
 
-      final newIntId = Random().nextInt(100000);
-      final newItem = Reminder(
-        id: DateTime.now().toIso8601String(),
-        intId: newIntId,
-        title: title,
-        remindAt: remindAt,
-        isActive: true,
-      );
+    final reminder = Reminder.create(
+      title: title,
+      remindAt: remindAt,
+      isActive: true,
+      imagePath: imagePath,
+    );
 
-      final currentList = state.value ?? [];
-
-      // Schedule Native Notification
-      await NotificationService().scheduleNotification(
-        newIntId,
-        title,
-        remindAt,
-        newItem.id,
-      );
-
-      return [...currentList, newItem];
+    // 1. Save to DB to generate ID
+    await isar.writeTxn(() async {
+      await isar.reminders.put(reminder);
     });
+
+    // 2. Schedule Notification using the generated ID
+    await NotificationService().scheduleNotification(
+      reminder.id,
+      title,
+      remindAt,
+      reminder.id.toString(),
+    );
+
+    ref.invalidateSelf();
   }
 
-  Future<void> toggleReminder(String id) async {
-    final currentList = state.value;
-    if (currentList == null) return;
+  Future<void> toggleReminder(int id) async {
+    final isar = await ref.watch(isarDbProvider.future);
 
-    state = await AsyncValue.guard(() async {
-      final updatedList = <Reminder>[];
-      for (var item in currentList) {
-        if (item.id == id) {
-          final newActive = !item.isActive;
+    // Convert logic to work with the fetched item
+    // We fetch, modify, save, then schedule/cancel
 
-          if (newActive) {
-            // Reschedule if enabling and time is in future
-            if (item.remindAt.isAfter(DateTime.now())) {
-              await NotificationService().scheduleNotification(
-                item.intId,
-                item.title,
-                item.remindAt,
-                item.id,
-              );
-            }
-          } else {
-            // Cancel if disabling
-            await NotificationService().cancelNotification(item.intId);
-          }
-          updatedList.add(item.copyWith(isActive: newActive));
-        } else {
-          updatedList.add(item);
-        }
+    final item = await isar.reminders.get(id);
+    if (item == null) return;
+
+    final newActive = !item.isActive;
+
+    await isar.writeTxn(() async {
+      item.isActive = newActive;
+      await isar.reminders.put(item);
+    });
+
+    // Handle signals outside transaction to avoid blocking DB (good practice)
+    if (newActive) {
+      if (item.remindAt.isAfter(DateTime.now())) {
+        await NotificationService().scheduleNotification(
+          item.id,
+          item.title,
+          item.remindAt,
+          item.id.toString(),
+        );
       }
-      return updatedList;
+    } else {
+      await NotificationService().cancelNotification(item.id);
+    }
+
+    ref.invalidateSelf();
+  }
+
+  Future<void> editReminder(Reminder reminder) async {
+    final isar = await ref.watch(isarDbProvider.future);
+
+    await isar.writeTxn(() async {
+      await isar.reminders.put(reminder);
     });
+
+    // Reschedule or Cancel based on new state
+    if (reminder.isActive && reminder.remindAt.isAfter(DateTime.now())) {
+      await NotificationService().scheduleNotification(
+        reminder.id,
+        reminder.title,
+        reminder.remindAt,
+        reminder.id.toString(),
+      );
+    } else {
+      await NotificationService().cancelNotification(reminder.id);
+    }
+
+    ref.invalidateSelf();
+  }
+
+  Future<void> deleteReminder(int id) async {
+    final isar = await ref.watch(isarDbProvider.future);
+    await isar.writeTxn(() async {
+      await isar.reminders.delete(id);
+    });
+    // Ensure notification is cancelled
+    await NotificationService().cancelNotification(id);
+    ref.invalidateSelf();
   }
 }

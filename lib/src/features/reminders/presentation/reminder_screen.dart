@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -97,7 +99,7 @@ class ReminderScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddReminderModal(BuildContext context) {
+  void _showAddReminderModal(BuildContext context, {Reminder? existingItem}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -105,7 +107,7 @@ class ReminderScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => const _CreateReminderModal(),
+      builder: (context) => _CreateReminderModal(existingItem: existingItem),
     );
   }
 }
@@ -143,58 +145,87 @@ class _ReminderTile extends ConsumerWidget {
     final primary = Theme.of(context).colorScheme.primary;
     final isPast = item.remindAt.isBefore(DateTime.now());
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border(
-            left: BorderSide(color: isPast ? Colors.grey : primary, width: 4)),
-      ),
-      child: Row(
-        children: [
-          Column(
-            children: [
-              Text(
-                DateFormat('HH:mm').format(item.remindAt),
-                style: GoogleFonts.jetBrainsMono(
-                  color: isPast ? Colors.white38 : Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                DateFormat('MMM d').format(item.remindAt),
-                style: GoogleFonts.inter(
-                  color: Colors.white24,
-                  fontSize: 10,
-                ),
-              ),
-            ],
+    return GestureDetector(
+      onLongPress: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: const Color(0xFF111111),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Text(
-              item.title,
-              style: GoogleFonts.inter(
-                color: item.isActive ? Colors.white : Colors.white24,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                decoration: !item.isActive ? TextDecoration.lineThrough : null,
+          builder: (context) => _CreateReminderModal(existingItem: item),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border(
+              left:
+                  BorderSide(color: isPast ? Colors.grey : primary, width: 4)),
+        ),
+        child: Row(
+          children: [
+            Column(
+              children: [
+                Text(
+                  DateFormat('HH:mm').format(item.remindAt),
+                  style: GoogleFonts.jetBrainsMono(
+                    color: isPast ? Colors.white38 : Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  DateFormat('MMM d').format(item.remindAt),
+                  style: GoogleFonts.inter(
+                    color: Colors.white24,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 20),
+            if (item.imagePath != null) ...[
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  image: DecorationImage(
+                    image: FileImage(File(item.imagePath!)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Text(
+                item.title,
+                style: GoogleFonts.inter(
+                  color: item.isActive ? Colors.white : Colors.white24,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  decoration:
+                      !item.isActive ? TextDecoration.lineThrough : null,
+                ),
               ),
             ),
-          ),
-          Switch.adaptive(
-            value: item.isActive,
-            onChanged: (val) {
-              ref
-                  .read(reminderControllerProvider.notifier)
-                  .toggleReminder(item.id);
-            },
-            activeColor: primary,
-          ),
-        ],
+            Switch.adaptive(
+              value: item.isActive,
+              onChanged: (val) {
+                ref
+                    .read(reminderControllerProvider.notifier)
+                    .toggleReminder(item.id);
+              },
+              activeColor: primary,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -226,7 +257,8 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _CreateReminderModal extends ConsumerStatefulWidget {
-  const _CreateReminderModal();
+  final Reminder? existingItem;
+  const _CreateReminderModal({this.existingItem});
 
   @override
   ConsumerState<_CreateReminderModal> createState() =>
@@ -236,10 +268,35 @@ class _CreateReminderModal extends ConsumerStatefulWidget {
 class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
   final _titleController = TextEditingController();
   DateTime _scheduledTime = DateTime.now().add(const Duration(minutes: 5));
+  File? _selectedImage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingItem != null) {
+      _titleController.text = widget.existingItem!.title;
+      _scheduledTime = widget.existingItem!.remindAt;
+      if (widget.existingItem!.imagePath != null) {
+        _selectedImage = File(widget.existingItem!.imagePath!);
+      }
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final isEditing = widget.existingItem != null;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -251,15 +308,75 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'NEW SIGNAL',
-            style: GoogleFonts.jetBrainsMono(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isEditing ? 'EDIT SIGNAL' : 'NEW SIGNAL',
+                style: GoogleFonts.jetBrainsMono(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => _pickImage(ImageSource.camera),
+                    icon: const Icon(Icons.camera_alt, color: Colors.white70),
+                    tooltip: 'Take Photo',
+                  ),
+                  IconButton(
+                    onPressed: () => _pickImage(ImageSource.gallery),
+                    icon:
+                        const Icon(Icons.photo_library, color: Colors.white70),
+                    tooltip: 'Choose from Gallery',
+                  ),
+                  if (isEditing)
+                    IconButton(
+                      onPressed: () {
+                        ref
+                            .read(reminderControllerProvider.notifier)
+                            .deleteReminder(widget.existingItem!.id);
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          // Image Preview
+          if (_selectedImage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Container(
+                    height: 150,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white24),
+                      image: DecorationImage(
+                        image: FileImage(_selectedImage!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => setState(() => _selectedImage = null),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           TextField(
             controller: _titleController,
             style: GoogleFonts.inter(color: Colors.white),
@@ -272,7 +389,7 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
                 borderSide: BorderSide.none,
               ),
             ),
-            autofocus: true,
+            autofocus: !isEditing,
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -301,10 +418,23 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
               onPressed: () {
                 if (_titleController.text.isEmpty) return;
 
-                ref.read(reminderControllerProvider.notifier).addReminder(
-                      _titleController.text,
-                      _scheduledTime,
-                    );
+                if (isEditing) {
+                  final updatedItem = widget.existingItem!
+                    ..title = _titleController.text
+                    ..remindAt = _scheduledTime
+                    ..imagePath =
+                        _selectedImage?.path; // Allow clearing image if null
+
+                  ref
+                      .read(reminderControllerProvider.notifier)
+                      .editReminder(updatedItem);
+                } else {
+                  ref.read(reminderControllerProvider.notifier).addReminder(
+                        _titleController.text,
+                        _scheduledTime,
+                        imagePath: _selectedImage?.path,
+                      );
+                }
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
@@ -315,7 +445,7 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
                 ),
               ),
               child: Text(
-                'SCHEDULE SIGNAL',
+                isEditing ? 'UPDATE SIGNAL' : 'SCHEDULE SIGNAL',
                 style: GoogleFonts.jetBrainsMono(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,
