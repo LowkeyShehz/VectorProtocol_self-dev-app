@@ -90,8 +90,8 @@ class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
               label: 'Journal',
             ),
             NavigationDestination(
-              icon: Icon(CupertinoIcons.settings),
-              label: 'Config',
+              icon: Icon(CupertinoIcons.person),
+              label: 'Profile',
             ),
           ],
         ),

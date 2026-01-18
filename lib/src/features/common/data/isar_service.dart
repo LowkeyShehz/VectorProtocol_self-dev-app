@@ -5,6 +5,7 @@ import '../../habits/domain/habit_model.dart';
 import '../../todo/domain/todo_model.dart';
 import '../../reminders/domain/reminder_model.dart';
 import '../../journal/domain/journal_entry_model.dart';
+import '../../profile/domain/profile_model.dart';
 
 part 'isar_service.g.dart';
 
@@ -19,6 +20,7 @@ Future<Isar> isarDb(IsarDbRef ref) async {
         TodoItemSchema,
         ReminderSchema,
         JournalEntrySchema,
+        ProfileSchema,
       ],
       directory: dir.path,
       inspector: true,

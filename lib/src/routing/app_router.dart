@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:level_up/src/features/common/placeholder_screens.dart';
 import 'package:level_up/src/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:level_up/src/features/habits/presentation/habits_screen.dart';
 import 'package:level_up/src/features/journal/presentation/journal_screen.dart';
 import 'package:level_up/src/features/reminders/presentation/reminder_screen.dart';
+import 'package:level_up/src/features/profile/presentation/profile_screen.dart';
 import 'package:level_up/src/features/shell/presentation/scaffold_with_navigation.dart';
 import 'package:level_up/src/features/todo/presentation/todo_screen.dart';
 
@@ -70,12 +70,12 @@ GoRouter goRouter(GoRouterRef ref) {
               ),
             ],
           ),
-          // 6. Settings
+          // 6. Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/settings',
-                builder: (context, state) => const SettingsScreen(),
+                path: '/profile',
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),

@@ -6,31 +6,39 @@ import 'package:intl/intl.dart';
 import '../../habits/data/habit_provider.dart';
 import '../../habits/domain/habit_model.dart';
 import '../../todo/data/todo_provider.dart';
-import '../../todo/domain/todo_model.dart';
 import '../../reminders/data/reminder_provider.dart';
-import '../../reminders/domain/reminder_model.dart';
+import '../../profile/data/profile_provider.dart';
+import '../data/dashboard_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Cyberpunk colors
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final gridColor = Colors.white.withOpacity(0.1);
+    // Dynamic colors
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final gridColor = isDark ? Colors.white.withOpacity(0.1) : Colors.black12;
+    final cardColor = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
 
     final habitsAsync = ref.watch(habitControllerProvider);
     final todosAsync = ref.watch(todoControllerProvider);
     final remindersAsync = ref.watch(reminderControllerProvider);
+    final profileAsync = ref.watch(profileControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black, // Deep dark background
+      backgroundColor: theme.scaffoldBackgroundColor, // Deep dark background
       appBar: AppBar(
         title: Text(
           'DASHBOARD',
           style: GoogleFonts.jetBrainsMono(
             fontWeight: FontWeight.bold,
             letterSpacing: 2.0,
+            color: textColor,
           ),
         ),
         centerTitle: true,
@@ -51,70 +59,159 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                height: 300,
-                child: RadarChart(
-                  RadarChartData(
-                    radarTouchData: RadarTouchData(enabled: true),
-                    dataSets: [
-                      RadarDataSet(
-                        fillColor: primaryColor.withOpacity(0.2),
-                        borderColor: primaryColor,
-                        entryRadius: 3,
-                        dataEntries: [
-                          const RadarEntry(value: 80), // Health
-                          const RadarEntry(value: 60), // Intellect
-                          const RadarEntry(value: 70), // Social
-                          const RadarEntry(value: 90), // Spirit
-                          const RadarEntry(value: 50), // Finance
-                          const RadarEntry(value: 75), // Creativity
-                        ],
-                        borderWidth: 2,
-                      ),
-                    ],
-                    radarBackgroundColor: Colors.transparent,
-                    borderData: FlBorderData(show: false),
-                    radarBorderData: const BorderSide(
-                      color: Colors.transparent,
-                    ),
-                    titlePositionPercentageOffset: 0.2,
-                    titleTextStyle: GoogleFonts.jetBrainsMono(
-                      color: Colors.white70,
-                      fontSize: 10,
-                    ),
-                    getTitle: (index, angle) {
-                      switch (index) {
-                        case 0:
-                          return const RadarChartTitle(text: 'Health');
-                        case 1:
-                          return const RadarChartTitle(text: 'Intellect');
-                        case 2:
-                          return const RadarChartTitle(text: 'Social');
-                        case 3:
-                          return const RadarChartTitle(text: 'Spirit');
-                        case 4:
-                          return const RadarChartTitle(text: 'Finance');
-                        case 5:
-                          return const RadarChartTitle(text: 'Creativity');
-                        default:
-                          return const RadarChartTitle(text: '');
-                      }
+              profileAsync.when(
+                data: (profile) {
+                  return Consumer(
+                    builder: (context, ref, child) {
+                      final timeFilter = ref.watch(dashboardTimeFilterProvider);
+                      final radarStatsAsync =
+                          ref.watch(dashboardRadarStatsProvider);
+
+                      return radarStatsAsync.when(
+                        data: (stats) {
+                          final labels = profile.radarLabels;
+                          final values = stats;
+                          final count = labels.length;
+                          final renderCount =
+                              values.length < count ? values.length : count;
+
+                          return Stack(
+                            children: [
+                              SizedBox(
+                                height: 300,
+                                child: RadarChart(
+                                  RadarChartData(
+                                    radarTouchData:
+                                        RadarTouchData(enabled: false),
+                                    dataSets: [
+                                      RadarDataSet(
+                                        fillColor: Colors.transparent,
+                                        borderColor: gridColor.withOpacity(0.3),
+                                        entryRadius: 0,
+                                        dataEntries: List.generate(
+                                            renderCount,
+                                            (_) =>
+                                                const RadarEntry(value: 1.0)),
+                                        borderWidth: 1,
+                                      ),
+                                      RadarDataSet(
+                                        fillColor: Colors.transparent,
+                                        borderColor: Colors.transparent,
+                                        entryRadius: 0,
+                                        dataEntries: List.generate(
+                                            renderCount,
+                                            (_) =>
+                                                const RadarEntry(value: 0.0)),
+                                        borderWidth: 0,
+                                      ),
+                                      RadarDataSet(
+                                        fillColor:
+                                            primaryColor.withOpacity(0.3),
+                                        borderColor: primaryColor,
+                                        entryRadius: 3,
+                                        dataEntries: values
+                                            .take(renderCount)
+                                            .map((v) =>
+                                                RadarEntry(value: v / 100.0))
+                                            .toList(),
+                                        borderWidth: 2,
+                                      ),
+                                    ],
+                                    radarBackgroundColor: Colors.transparent,
+                                    borderData: FlBorderData(show: false),
+                                    radarBorderData: const BorderSide(
+                                        color: Colors.transparent),
+                                    titlePositionPercentageOffset: 0.05,
+                                    titleTextStyle: GoogleFonts.jetBrainsMono(
+                                      color: subTextColor,
+                                      fontSize: 10,
+                                    ),
+                                    getTitle: (index, angle) {
+                                      if (index >= 0 && index < renderCount) {
+                                        return RadarChartTitle(
+                                            text: labels[index]);
+                                      }
+                                      return const RadarChartTitle(text: '');
+                                    },
+                                    tickCount: 4,
+                                    ticksTextStyle: GoogleFonts.jetBrainsMono(
+                                        color: gridColor, fontSize: 8),
+                                    gridBorderData:
+                                        BorderSide(color: gridColor, width: 1),
+                                  ),
+                                  swapAnimationDuration:
+                                      const Duration(milliseconds: 400),
+                                ),
+                              ),
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<DashboardTimeFilter>(
+                                      value: timeFilter,
+                                      dropdownColor: const Color(0xFF222222),
+                                      style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 12, color: textColor),
+                                      icon: const Icon(
+                                          Icons.keyboard_arrow_down,
+                                          size: 16),
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          ref
+                                              .read(dashboardTimeFilterProvider
+                                                  .notifier)
+                                              .state = val;
+                                        }
+                                      },
+                                      items:
+                                          DashboardTimeFilter.values.map((f) {
+                                        return DropdownMenuItem(
+                                          value: f,
+                                          child: Text(f.name.toUpperCase()),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () => const SizedBox(
+                            height: 300,
+                            child: Center(child: CircularProgressIndicator())),
+                        error: (err, stack) => SizedBox(
+                            height: 300,
+                            child: Center(child: Text('Error: $err'))),
+                      );
                     },
-                    tickCount: 1,
-                    ticksTextStyle: const TextStyle(color: Colors.transparent),
-                    gridBorderData: BorderSide(color: gridColor, width: 1),
-                  ),
-                  swapAnimationDuration: const Duration(milliseconds: 400),
-                ),
+                  );
+                },
+                loading: () => const SizedBox(
+                    height: 300,
+                    child: Center(child: CircularProgressIndicator())),
+                error: (err, stack) => SizedBox(
+                    height: 300,
+                    child: Center(child: Text('Error loading stats: $err'))),
               ),
               const SizedBox(height: 20),
               // Stats Area
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black12),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -147,8 +244,8 @@ class DashboardScreen extends ConsumerWidget {
                       .toList(); // Show top 3 pending
 
                   if (pending.isEmpty) {
-                    return const Text('All protocols executed.',
-                        style: TextStyle(color: Colors.white38));
+                    return Text('All protocols executed.',
+                        style: TextStyle(color: subTextColor));
                   }
 
                   return Column(
@@ -273,7 +370,9 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: GoogleFonts.inter(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -296,12 +395,18 @@ class _HabitItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
+    final borderColor =
+        isDark ? Colors.white.withOpacity(0.05) : Colors.black12;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -309,7 +414,7 @@ class _HabitItem extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: textColor,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -356,10 +461,15 @@ class _TodoItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Colors.white.withOpacity(0.03) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subTextColor = isDark ? Colors.white38 : Colors.black38;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: cardColor,
         border: Border(
           left: BorderSide(
             color: isDone ? Colors.grey : primaryColor,
@@ -379,7 +489,7 @@ class _TodoItem extends StatelessWidget {
             child: Text(
               label,
               style: GoogleFonts.inter(
-                color: isDone ? Colors.white38 : Colors.white,
+                color: isDone ? subTextColor : textColor,
                 fontSize: 14,
                 decoration: isDone ? TextDecoration.lineThrough : null,
               ),
@@ -404,10 +514,14 @@ class _ReminderItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: cardColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -432,7 +546,7 @@ class _ReminderItem extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: textColor,
               fontSize: 14,
             ),
           ),

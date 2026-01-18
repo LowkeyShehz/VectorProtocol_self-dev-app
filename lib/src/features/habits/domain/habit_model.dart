@@ -42,6 +42,8 @@ class Habit {
   @Enumerated(EnumType.name)
   late HabitCategory category;
 
+  String? relatedAttribute; // For Radar Chart Integration
+
   late List<DateTime> completedDates;
 
   late DateTime createdAt;

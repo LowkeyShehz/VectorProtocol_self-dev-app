@@ -1,27 +1,26 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'reminder_provider.dart';
+part of 'profile_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$reminderControllerHash() =>
-    r'975daa3627d62dc2a3ffa7b7a3795affc959fce2';
+String _$profileControllerHash() => r'a8986e4d066bb9dd2f3f55105938806d99220d28';
 
-/// See also [ReminderController].
-@ProviderFor(ReminderController)
-final reminderControllerProvider = AutoDisposeAsyncNotifierProvider<
-    ReminderController, List<Reminder>>.internal(
-  ReminderController.new,
-  name: r'reminderControllerProvider',
+/// See also [ProfileController].
+@ProviderFor(ProfileController)
+final profileControllerProvider =
+    AutoDisposeAsyncNotifierProvider<ProfileController, Profile>.internal(
+  ProfileController.new,
+  name: r'profileControllerProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$reminderControllerHash,
+      : _$profileControllerHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
-typedef _$ReminderController = AutoDisposeAsyncNotifier<List<Reminder>>;
+typedef _$ProfileController = AutoDisposeAsyncNotifier<Profile>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

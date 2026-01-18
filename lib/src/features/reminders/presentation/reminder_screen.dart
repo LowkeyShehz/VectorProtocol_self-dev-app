@@ -19,18 +19,22 @@ class ReminderScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final reminderAsync = ref.watch(reminderControllerProvider);
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: theme.scaffoldBackgroundColor,
             floating: true,
             title: Text(
               'REMINDERS',
               style: GoogleFonts.jetBrainsMono(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
             centerTitle: true,

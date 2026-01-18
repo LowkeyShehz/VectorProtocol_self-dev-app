@@ -44,29 +44,34 @@ const HabitSchema = CollectionSchema(
       type: IsarType.string,
       enumMap: _HabitfrequencyEnumValueMap,
     ),
-    r'targetDays': PropertySchema(
+    r'relatedAttribute': PropertySchema(
       id: 5,
+      name: r'relatedAttribute',
+      type: IsarType.string,
+    ),
+    r'targetDays': PropertySchema(
+      id: 6,
       name: r'targetDays',
       type: IsarType.longList,
     ),
     r'title': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'title',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'type',
       type: IsarType.string,
       enumMap: _HabittypeEnumValueMap,
     ),
     r'weeklyCount': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'weeklyCount',
       type: IsarType.long,
     ),
     r'weeklyType': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'weeklyType',
       type: IsarType.string,
       enumMap: _HabitweeklyTypeEnumValueMap,
@@ -95,6 +100,12 @@ int _habitEstimateSize(
   bytesCount += 3 + object.category.name.length * 3;
   bytesCount += 3 + object.completedDates.length * 8;
   bytesCount += 3 + object.frequency.name.length * 3;
+  {
+    final value = object.relatedAttribute;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.targetDays.length * 8;
   bytesCount += 3 + object.title.length * 3;
   bytesCount += 3 + object.type.name.length * 3;
@@ -118,11 +129,12 @@ void _habitSerialize(
   writer.writeDateTimeList(offsets[2], object.completedDates);
   writer.writeDateTime(offsets[3], object.createdAt);
   writer.writeString(offsets[4], object.frequency.name);
-  writer.writeLongList(offsets[5], object.targetDays);
-  writer.writeString(offsets[6], object.title);
-  writer.writeString(offsets[7], object.type.name);
-  writer.writeLong(offsets[8], object.weeklyCount);
-  writer.writeString(offsets[9], object.weeklyType?.name);
+  writer.writeString(offsets[5], object.relatedAttribute);
+  writer.writeLongList(offsets[6], object.targetDays);
+  writer.writeString(offsets[7], object.title);
+  writer.writeString(offsets[8], object.type.name);
+  writer.writeLong(offsets[9], object.weeklyCount);
+  writer.writeString(offsets[10], object.weeklyType?.name);
 }
 
 Habit _habitDeserialize(
@@ -142,13 +154,14 @@ Habit _habitDeserialize(
       _HabitfrequencyValueEnumMap[reader.readStringOrNull(offsets[4])] ??
           HabitFrequency.daily;
   object.id = id;
-  object.targetDays = reader.readLongList(offsets[5]) ?? [];
-  object.title = reader.readString(offsets[6]);
-  object.type = _HabittypeValueEnumMap[reader.readStringOrNull(offsets[7])] ??
+  object.relatedAttribute = reader.readStringOrNull(offsets[5]);
+  object.targetDays = reader.readLongList(offsets[6]) ?? [];
+  object.title = reader.readString(offsets[7]);
+  object.type = _HabittypeValueEnumMap[reader.readStringOrNull(offsets[8])] ??
       HabitType.good;
-  object.weeklyCount = reader.readLong(offsets[8]);
+  object.weeklyCount = reader.readLong(offsets[9]);
   object.weeklyType =
-      _HabitweeklyTypeValueEnumMap[reader.readStringOrNull(offsets[9])];
+      _HabitweeklyTypeValueEnumMap[reader.readStringOrNull(offsets[10])];
   return object;
 }
 
@@ -172,15 +185,17 @@ P _habitDeserializeProp<P>(
       return (_HabitfrequencyValueEnumMap[reader.readStringOrNull(offset)] ??
           HabitFrequency.daily) as P;
     case 5:
-      return (reader.readLongList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readLongList(offset) ?? []) as P;
     case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (_HabittypeValueEnumMap[reader.readStringOrNull(offset)] ??
           HabitType.good) as P;
-    case 8:
-      return (reader.readLong(offset)) as P;
     case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
       return (_HabitweeklyTypeValueEnumMap[reader.readStringOrNull(offset)])
           as P;
     default:
@@ -880,6 +895,154 @@ extension HabitQueryFilter on QueryBuilder<Habit, Habit, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'relatedAttribute',
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition>
+      relatedAttributeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'relatedAttribute',
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'relatedAttribute',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'relatedAttribute',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'relatedAttribute',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'relatedAttribute',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'relatedAttribute',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'relatedAttribute',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'relatedAttribute',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'relatedAttribute',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> relatedAttributeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'relatedAttribute',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition>
+      relatedAttributeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'relatedAttribute',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Habit, Habit, QAfterFilterCondition> targetDaysElementEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -1527,6 +1690,18 @@ extension HabitQuerySortBy on QueryBuilder<Habit, Habit, QSortBy> {
     });
   }
 
+  QueryBuilder<Habit, Habit, QAfterSortBy> sortByRelatedAttribute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'relatedAttribute', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> sortByRelatedAttributeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'relatedAttribute', Sort.desc);
+    });
+  }
+
   QueryBuilder<Habit, Habit, QAfterSortBy> sortByTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'title', Sort.asc);
@@ -1637,6 +1812,18 @@ extension HabitQuerySortThenBy on QueryBuilder<Habit, Habit, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Habit, Habit, QAfterSortBy> thenByRelatedAttribute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'relatedAttribute', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> thenByRelatedAttributeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'relatedAttribute', Sort.desc);
+    });
+  }
+
   QueryBuilder<Habit, Habit, QAfterSortBy> thenByTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'title', Sort.asc);
@@ -1719,6 +1906,14 @@ extension HabitQueryWhereDistinct on QueryBuilder<Habit, Habit, QDistinct> {
     });
   }
 
+  QueryBuilder<Habit, Habit, QDistinct> distinctByRelatedAttribute(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'relatedAttribute',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Habit, Habit, QDistinct> distinctByTargetDays() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'targetDays');
@@ -1788,6 +1983,12 @@ extension HabitQueryProperty on QueryBuilder<Habit, Habit, QQueryProperty> {
   QueryBuilder<Habit, HabitFrequency, QQueryOperations> frequencyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'frequency');
+    });
+  }
+
+  QueryBuilder<Habit, String?, QQueryOperations> relatedAttributeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'relatedAttribute');
     });
   }
 

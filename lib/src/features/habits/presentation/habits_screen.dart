@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../data/habit_provider.dart';
 import '../domain/habit_model.dart';
+import '../../profile/data/profile_provider.dart';
 
 class HabitsScreen extends ConsumerWidget {
   const HabitsScreen({super.key});
@@ -12,18 +13,22 @@ class HabitsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final habitsAsync = ref.watch(habitControllerProvider);
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: theme.scaffoldBackgroundColor,
             floating: true,
             title: Text(
               'HABIT TRACKER',
               style: GoogleFonts.jetBrainsMono(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
             centerTitle: true,
@@ -225,6 +230,7 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
   HabitCategory _category = HabitCategory.health;
   final Set<int> _selectedDays = {};
   int _targetDaysCount = 1;
+  String? _selectedRadarAttribute;
 
   @override
   void initState() {
@@ -238,6 +244,7 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
       if (h.weeklyType != null) _weeklyType = h.weeklyType!;
       if (h.targetDays.isNotEmpty) _selectedDays.addAll(h.targetDays);
       _targetDaysCount = h.weeklyCount;
+      _selectedRadarAttribute = h.relatedAttribute;
     }
   }
 
@@ -411,6 +418,58 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
             ],
           ).animate().slideY(begin: 0.2, end: 0, delay: 100.ms),
 
+          const SizedBox(height: 16),
+          // Radar Attribute
+          Consumer(
+            builder: (context, ref, child) {
+              final profileAsync = ref.watch(profileControllerProvider);
+              return profileAsync.maybeWhen(
+                data: (profile) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('RADAR LINK (Optional)',
+                          style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10, color: Colors.grey)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedRadarAttribute,
+                        dropdownColor: const Color(0xFF222222),
+                        style: GoogleFonts.inter(color: Colors.white),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          hintText: 'None',
+                          hintStyle: GoogleFonts.inter(color: Colors.white24),
+                        ),
+                        items: [
+                          // Option to clear
+                          const DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('None'),
+                          ),
+                          ...profile.radarLabels.map((l) => DropdownMenuItem(
+                                value: l,
+                                child: Text(l),
+                              )),
+                        ],
+                        onChanged: (val) =>
+                            setState(() => _selectedRadarAttribute = val),
+                      ),
+                    ],
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              );
+            },
+          ),
+
           // Weekly Logic
           // 1. Sub-Type Selection (Specific Days vs Count)
           if (_frequency == HabitFrequency.weekly) ...[
@@ -519,7 +578,8 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
                     ..targetDays = _selectedDays.toList()
                     ..weeklyCount = _targetDaysCount
                     ..color = _type == HabitType.good ? 0xFF00FF9D : 0xFFFF5252
-                    ..category = _category;
+                    ..category = _category
+                    ..relatedAttribute = _selectedRadarAttribute;
 
                   ref
                       .read(habitControllerProvider.notifier)
@@ -537,7 +597,7 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
                     color: _type == HabitType.good ? 0xFF00FF9D : 0xFFFF5252,
                     category: _category,
                     createdAt: DateTime.now(),
-                  );
+                  )..relatedAttribute = _selectedRadarAttribute;
 
                   ref.read(habitControllerProvider.notifier).addHabit(newHabit);
                 }
