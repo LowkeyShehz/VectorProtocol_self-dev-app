@@ -132,6 +132,94 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
 
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.format_quote, color: subTextColor),
+                          const SizedBox(width: 16),
+                          GestureDetector(
+                            onTap: () async {
+                              final now = TimeOfDay(
+                                  hour: profile.motivationHour,
+                                  minute: profile.motivationMinute);
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: now,
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: isDark
+                                        ? ThemeData.dark().copyWith(
+                                            colorScheme: ColorScheme.dark(
+                                              primary: primary,
+                                              onPrimary: Colors.black,
+                                              surface: const Color(0xFF222222),
+                                              onSurface: Colors.white,
+                                            ),
+                                          )
+                                        : ThemeData.light(),
+                                    child: child!,
+                                  );
+                                },
+                              );
+
+                              if (picked != null) {
+                                ref
+                                    .read(profileControllerProvider.notifier)
+                                    .updateProfile(
+                                        motivationHour: picked.hour,
+                                        motivationMinute: picked.minute);
+                              }
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'DAILY MOTIVATION',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Sent at ${TimeOfDay(hour: profile.motivationHour, minute: profile.motivationMinute).format(context)}',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.grey,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.edit, size: 10, color: primary),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Switch(
+                        value: profile.dailyQuotesEnabled,
+                        activeColor: primary,
+                        onChanged: (val) {
+                          ref
+                              .read(profileControllerProvider.notifier)
+                              .updateProfile(dailyQuotesEnabled: val);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 32),
                 // Stats / Calibration Header
                 Consumer(

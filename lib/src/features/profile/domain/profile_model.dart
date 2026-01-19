@@ -14,6 +14,20 @@ class Profile {
 
   late List<int> radarValues;
 
+  bool dailyQuotesEnabled = true;
+
+  // Storing hour/minute for daily quotes
+  int motivationHour = 6;
+  int motivationMinute = 0;
+
+  int xp = 0;
+  int level = 1;
+
+  int appStreak = 0;
+  DateTime? lastAppOpenDate;
+
+  List<String> completedAchievements = [];
+
   Profile();
 
   Profile.create({
@@ -21,5 +35,13 @@ class Profile {
     this.isDarkMode = true,
     required this.radarLabels,
     required this.radarValues,
+    this.dailyQuotesEnabled = true,
+    this.motivationHour = 6,
+    this.motivationMinute = 0,
+    this.xp = 0,
+    this.level = 1,
+    this.appStreak = 0,
+    this.lastAppOpenDate,
+    this.completedAchievements = const [],
   });
 }

@@ -33,14 +33,57 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor, // Deep dark background
       appBar: AppBar(
-        title: Text(
-          'DASHBOARD',
-          style: GoogleFonts.jetBrainsMono(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2.0,
-            color: textColor,
+        title: profileAsync.when(
+          data: (profile) => Text(
+            'WELCOME, ${profile.username.toUpperCase()}',
+            style: GoogleFonts.jetBrainsMono(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2.0,
+              color: textColor,
+              fontSize: 16, // Slightly smaller to fit long names
+            ),
+          ),
+          loading: () => Text(
+            'LOADING...',
+            style: GoogleFonts.jetBrainsMono(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2.0,
+              color: textColor,
+            ),
+          ),
+          error: (_, __) => Text(
+            'WELCOME',
+            style: GoogleFonts.jetBrainsMono(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2.0,
+              color: textColor,
+            ),
           ),
         ),
+        actions: [
+          profileAsync.when(
+            data: (profile) => Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_fire_department,
+                      color: Color(0xFFFF5252), size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${profile.appStreak}',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -75,110 +118,187 @@ class DashboardScreen extends ConsumerWidget {
                           final renderCount =
                               values.length < count ? values.length : count;
 
-                          return Stack(
+                          return Column(
                             children: [
-                              SizedBox(
-                                height: 300,
-                                child: RadarChart(
-                                  RadarChartData(
-                                    radarTouchData:
-                                        RadarTouchData(enabled: false),
-                                    dataSets: [
-                                      RadarDataSet(
-                                        fillColor: Colors.transparent,
-                                        borderColor: gridColor.withOpacity(0.3),
-                                        entryRadius: 0,
-                                        dataEntries: List.generate(
-                                            renderCount,
-                                            (_) =>
-                                                const RadarEntry(value: 1.0)),
-                                        borderWidth: 1,
+                              Stack(
+                                children: [
+                                  SizedBox(
+                                    height: 300,
+                                    child: RadarChart(
+                                      RadarChartData(
+                                        radarTouchData:
+                                            RadarTouchData(enabled: false),
+                                        dataSets: [
+                                          RadarDataSet(
+                                            fillColor: Colors.transparent,
+                                            borderColor:
+                                                gridColor.withOpacity(0.3),
+                                            entryRadius: 0,
+                                            dataEntries: List.generate(
+                                                renderCount,
+                                                (_) => const RadarEntry(
+                                                    value: 1.0)),
+                                            borderWidth: 1,
+                                          ),
+                                          RadarDataSet(
+                                            fillColor: Colors.transparent,
+                                            borderColor: Colors.transparent,
+                                            entryRadius: 0,
+                                            dataEntries: List.generate(
+                                                renderCount,
+                                                (_) => const RadarEntry(
+                                                    value: 0.0)),
+                                            borderWidth: 0,
+                                          ),
+                                          RadarDataSet(
+                                            fillColor:
+                                                primaryColor.withOpacity(0.3),
+                                            borderColor: primaryColor,
+                                            entryRadius: 3,
+                                            dataEntries: values
+                                                .take(renderCount)
+                                                .map((v) => RadarEntry(
+                                                    value: v / 100.0))
+                                                .toList(),
+                                            borderWidth: 2,
+                                          ),
+                                        ],
+                                        radarBackgroundColor:
+                                            Colors.transparent,
+                                        borderData: FlBorderData(show: false),
+                                        radarBorderData: const BorderSide(
+                                            color: Colors.transparent),
+                                        titlePositionPercentageOffset: 0.05,
+                                        titleTextStyle:
+                                            GoogleFonts.jetBrainsMono(
+                                          color: subTextColor,
+                                          fontSize: 10,
+                                        ),
+                                        getTitle: (index, angle) {
+                                          if (index >= 0 &&
+                                              index < renderCount) {
+                                            return RadarChartTitle(
+                                                text: labels[index]);
+                                          }
+                                          return const RadarChartTitle(
+                                              text: '');
+                                        },
+                                        tickCount: 4,
+                                        ticksTextStyle:
+                                            GoogleFonts.jetBrainsMono(
+                                                color: gridColor, fontSize: 8),
+                                        gridBorderData: BorderSide(
+                                            color: gridColor, width: 1),
                                       ),
-                                      RadarDataSet(
-                                        fillColor: Colors.transparent,
-                                        borderColor: Colors.transparent,
-                                        entryRadius: 0,
-                                        dataEntries: List.generate(
-                                            renderCount,
-                                            (_) =>
-                                                const RadarEntry(value: 0.0)),
-                                        borderWidth: 0,
-                                      ),
-                                      RadarDataSet(
-                                        fillColor:
-                                            primaryColor.withOpacity(0.3),
-                                        borderColor: primaryColor,
-                                        entryRadius: 3,
-                                        dataEntries: values
-                                            .take(renderCount)
-                                            .map((v) =>
-                                                RadarEntry(value: v / 100.0))
-                                            .toList(),
-                                        borderWidth: 2,
-                                      ),
-                                    ],
-                                    radarBackgroundColor: Colors.transparent,
-                                    borderData: FlBorderData(show: false),
-                                    radarBorderData: const BorderSide(
-                                        color: Colors.transparent),
-                                    titlePositionPercentageOffset: 0.05,
-                                    titleTextStyle: GoogleFonts.jetBrainsMono(
-                                      color: subTextColor,
-                                      fontSize: 10,
+                                      swapAnimationDuration:
+                                          const Duration(milliseconds: 400),
                                     ),
-                                    getTitle: (index, angle) {
-                                      if (index >= 0 && index < renderCount) {
-                                        return RadarChartTitle(
-                                            text: labels[index]);
-                                      }
-                                      return const RadarChartTitle(text: '');
-                                    },
-                                    tickCount: 4,
-                                    ticksTextStyle: GoogleFonts.jetBrainsMono(
-                                        color: gridColor, fontSize: 8),
-                                    gridBorderData:
-                                        BorderSide(color: gridColor, width: 1),
                                   ),
-                                  swapAnimationDuration:
-                                      const Duration(milliseconds: 400),
-                                ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: DropdownButtonHideUnderline(
+                                        child:
+                                            DropdownButton<DashboardTimeFilter>(
+                                          value: timeFilter,
+                                          dropdownColor:
+                                              const Color(0xFF222222),
+                                          style: GoogleFonts.jetBrainsMono(
+                                              fontSize: 12, color: textColor),
+                                          icon: const Icon(
+                                              Icons.keyboard_arrow_down,
+                                              size: 16),
+                                          onChanged: (val) {
+                                            if (val != null) {
+                                              ref
+                                                  .read(
+                                                      dashboardTimeFilterProvider
+                                                          .notifier)
+                                                  .state = val;
+                                            }
+                                          },
+                                          items: DashboardTimeFilter.values
+                                              .map((f) {
+                                            return DropdownMenuItem(
+                                              value: f,
+                                              child: Text(f.name.toUpperCase()),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<DashboardTimeFilter>(
-                                      value: timeFilter,
-                                      dropdownColor: const Color(0xFF222222),
-                                      style: GoogleFonts.jetBrainsMono(
-                                          fontSize: 12, color: textColor),
-                                      icon: const Icon(
-                                          Icons.keyboard_arrow_down,
-                                          size: 16),
-                                      onChanged: (val) {
-                                        if (val != null) {
-                                          ref
-                                              .read(dashboardTimeFilterProvider
-                                                  .notifier)
-                                              .state = val;
-                                        }
-                                      },
-                                      items:
-                                          DashboardTimeFilter.values.map((f) {
-                                        return DropdownMenuItem(
-                                          value: f,
-                                          child: Text(f.name.toUpperCase()),
-                                        );
-                                      }).toList(),
+                              const SizedBox(height: 24),
+                              // Player Stats
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: cardColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                      color: Colors.white.withOpacity(0.05)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // Level
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('LEVEL ${profile.level}',
+                                            style: GoogleFonts.jetBrainsMono(
+                                                color: primaryColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16)),
+                                        const SizedBox(height: 4),
+                                        Text('${profile.xp} XP',
+                                            style: GoogleFonts.jetBrainsMono(
+                                                color: Colors.grey,
+                                                fontSize: 10)),
+                                      ],
                                     ),
-                                  ),
+                                    // Streak
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFF5252)
+                                            .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: const Color(0xFFFF5252)
+                                                .withOpacity(0.3)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                              Icons.local_fire_department,
+                                              color: Color(0xFFFF5252),
+                                              size: 16),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${profile.appStreak} DAY STREAK',
+                                            style: GoogleFonts.jetBrainsMono(
+                                              color: const Color(0xFFFF5252),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -201,27 +321,7 @@ class DashboardScreen extends ConsumerWidget {
                     height: 300,
                     child: Center(child: Text('Error loading stats: $err'))),
               ),
-              const SizedBox(height: 20),
-              // Stats Area
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.black12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _StatItem('LEVEL', '42'),
-                    _StatItem('XP', '8,903'),
-                    _StatItem('STREAK', '12'),
-                  ],
-                ),
-              ),
+
               const SizedBox(height: 30),
 
               // Pending Habits
@@ -348,36 +448,6 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _StatItem(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.jetBrainsMono(color: Colors.grey, fontSize: 10),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-      ],
     );
   }
 }

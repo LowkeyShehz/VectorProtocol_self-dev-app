@@ -4,7 +4,32 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../common/data/isar_service.dart';
 import '../domain/profile_model.dart';
 
+import '../../reminders/services/notification_service.dart';
+
 part 'profile_provider.g.dart';
+
+const _motivationalQuotes = [
+  "The only way to do great work is to love what you do.",
+  "Believe you can and you're halfway there.",
+  "Your time is limited, don't waste it living someone else's life.",
+  "Don't watch the clock; do what it does. Keep going.",
+  "The future belongs to those who believe in the beauty of their dreams.",
+  "Success is not final, failure is not fatal: It is the courage to continue that counts.",
+  "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+  "The only limit to our realization of tomorrow will be our doubts of today.",
+  "Act as if what you do makes a difference. It does.",
+  "Success usually comes to those who are too busy to be looking for it.",
+  "Don't be afraid to give up the good to go for the great.",
+  "I find that the harder I work, the more luck I seem to have.",
+  "Success is walking from failure to failure with no loss of enthusiasm.",
+  "Opportunities don't happen. You create them.",
+  "Try not to become a man of success. Rather become a man of value.",
+  "Stop chasing the money and start chasing the passion.",
+  "All progress takes place outside the comfort zone.",
+  "The ones who are crazy enough to think they can change the world, are the ones who do.",
+  "Don't let yesterday take up too much of today.",
+  "You are never too old to set another goal or to dream a new dream."
+];
 
 @riverpod
 class ProfileController extends _$ProfileController {
@@ -27,6 +52,7 @@ class ProfileController extends _$ProfileController {
           'Finance',
         ],
         radarValues: [50, 80, 60, 70, 90, 50],
+        dailyQuotesEnabled: true,
       );
 
       // Force ID 1
@@ -35,6 +61,10 @@ class ProfileController extends _$ProfileController {
       await isar.writeTxn(() async {
         await isar.profiles.put(newProfile);
       });
+
+      // Schedule default quotes
+      await NotificationService().scheduleDailyQuotes(_motivationalQuotes);
+
       return newProfile;
     }
 
@@ -55,6 +85,53 @@ class ProfileController extends _$ProfileController {
       });
     }
 
+    // Reschedule on startup if enabled to ensure continuity
+    if (profile.dailyQuotesEnabled) {
+      await NotificationService().scheduleDailyQuotes(
+        _motivationalQuotes,
+        hour: profile.motivationHour,
+        minute: profile.motivationMinute,
+      );
+    }
+
+    // Streak Logic
+    final now = DateTime.now();
+    bool needsSave = false;
+
+    if (profile.lastAppOpenDate == null) {
+      // First open
+      profile.lastAppOpenDate = now;
+      profile.appStreak = 1;
+      needsSave = true;
+    } else {
+      final lastDate = profile.lastAppOpenDate!;
+      if (lastDate.year == now.year &&
+          lastDate.month == now.month &&
+          lastDate.day == now.day) {
+        // Same day, do nothing
+      } else {
+        // Different day
+        final yesterday = now.subtract(const Duration(days: 1));
+        if (lastDate.year == yesterday.year &&
+            lastDate.month == yesterday.month &&
+            lastDate.day == yesterday.day) {
+          // It was yesterday -> increment
+          profile.appStreak += 1;
+        } else {
+          // Missed a day -> reset
+          profile.appStreak = 1;
+        }
+        profile.lastAppOpenDate = now;
+        needsSave = true;
+      }
+    }
+
+    if (needsSave) {
+      await isar.writeTxn(() async {
+        await isar.profiles.put(profile);
+      });
+    }
+
     return profile;
   }
 
@@ -63,6 +140,12 @@ class ProfileController extends _$ProfileController {
     bool? isDarkMode,
     List<String>? radarLabels,
     List<int>? radarValues,
+    bool? dailyQuotesEnabled,
+    int? motivationHour,
+    int? motivationMinute,
+    int? xp,
+    int? level,
+    List<String>? completedAchievements,
   }) async {
     final isar = await ref.watch(isarDbProvider.future);
     final currentProfile = state.value;
@@ -74,11 +157,39 @@ class ProfileController extends _$ProfileController {
       ..username = username ?? currentProfile.username
       ..isDarkMode = isDarkMode ?? currentProfile.isDarkMode
       ..radarLabels = radarLabels ?? currentProfile.radarLabels
-      ..radarValues = radarValues ?? currentProfile.radarValues;
+      ..radarValues = radarValues ?? currentProfile.radarValues
+      ..dailyQuotesEnabled =
+          dailyQuotesEnabled ?? currentProfile.dailyQuotesEnabled
+      ..motivationHour = motivationHour ?? currentProfile.motivationHour
+      ..motivationMinute = motivationMinute ?? currentProfile.motivationMinute
+      ..xp = xp ?? currentProfile.xp
+      ..level = level ?? currentProfile.level
+      ..appStreak = currentProfile.appStreak
+      ..lastAppOpenDate = currentProfile.lastAppOpenDate
+      ..completedAchievements =
+          completedAchievements ?? currentProfile.completedAchievements;
 
     await isar.writeTxn(() async {
       await isar.profiles.put(updatedProfile);
     });
+
+    // Handle Quote Scheduling if toggled or time changed
+    final quotesEnabled =
+        dailyQuotesEnabled ?? currentProfile.dailyQuotesEnabled;
+    final timeChanged = (motivationHour != null &&
+            motivationHour != currentProfile.motivationHour) ||
+        (motivationMinute != null &&
+            motivationMinute != currentProfile.motivationMinute);
+
+    if (quotesEnabled && (dailyQuotesEnabled == true || timeChanged)) {
+      await NotificationService().scheduleDailyQuotes(
+        _motivationalQuotes,
+        hour: updatedProfile.motivationHour,
+        minute: updatedProfile.motivationMinute,
+      );
+    } else if (dailyQuotesEnabled == false) {
+      await NotificationService().cancelDailyQuotes();
+    }
 
     ref.invalidateSelf();
   }

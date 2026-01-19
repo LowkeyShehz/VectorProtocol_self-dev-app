@@ -12,7 +12,22 @@ class ReminderController extends _$ReminderController {
   @override
   FutureOr<List<Reminder>> build() async {
     final isar = await ref.watch(isarDbProvider.future);
-    return isar.reminders.where().findAll();
+    final reminders = await isar.reminders.where().findAll();
+
+    // Reschedule active reminders (CRITICAL for Linux persistence/restarts)
+    final now = DateTime.now();
+    for (final r in reminders) {
+      if (r.isActive && r.remindAt.isAfter(now)) {
+        await NotificationService().scheduleNotification(
+          r.id,
+          r.title,
+          r.remindAt,
+          r.id.toString(),
+        );
+      }
+    }
+
+    return reminders;
   }
 
   Future<void> addReminder(String title, DateTime remindAt,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import '../data/habit_provider.dart';
 import '../domain/habit_model.dart';
 import '../../profile/data/profile_provider.dart';
@@ -97,6 +98,16 @@ class _HabitCard extends ConsumerWidget {
     final isCompletedToday = habit.isCompletedOn(DateTime.now());
 
     return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: const Color(0xFF111111),
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          builder: (context) => _HabitDetailsModal(habit: habit),
+        );
+      },
       onLongPress: () {
         showModalBottomSheet(
           context: context,
@@ -144,32 +155,47 @@ class _HabitCard extends ConsumerWidget {
                 ],
               ),
             ),
-            // Interactive Check Button
-            InkWell(
-              onTap: () {
-                ref
-                    .read(habitControllerProvider.notifier)
-                    .toggleCompletion(habit.id, DateTime.now());
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isCompletedToday
-                      ? color.withOpacity(0.2)
-                      : Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isCompletedToday ? color : Colors.white24,
-                    width: 2,
+            // Streak & Check Button
+            Row(
+              children: [
+                if (habit.currentStreak > 0) ...[
+                  Text(
+                    '🔥 ${habit.currentStreak}',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: const Color(0xFF00FF9D),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                InkWell(
+                  onTap: () {
+                    ref
+                        .read(habitControllerProvider.notifier)
+                        .toggleCompletion(habit.id, DateTime.now());
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isCompletedToday
+                          ? color.withOpacity(0.2)
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isCompletedToday ? color : Colors.white24,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      size: 20,
+                      color: isCompletedToday ? color : Colors.transparent,
+                    ),
                   ),
                 ),
-                child: Icon(
-                  Icons.check,
-                  size: 20,
-                  color: isCompletedToday ? color : Colors.transparent,
-                ),
-              ),
+              ],
             ),
           ],
         ),
@@ -663,6 +689,268 @@ class _WeeklyTypeButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HabitDetailsModal extends StatefulWidget {
+  final Habit habit;
+  const _HabitDetailsModal({required this.habit});
+
+  @override
+  State<_HabitDetailsModal> createState() => _HabitDetailsModalState();
+}
+
+class _HabitDetailsModalState extends State<_HabitDetailsModal> {
+  DateTime _focusedDay = DateTime.now();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final habit = widget.habit;
+    final completedDates = habit.completedDates;
+
+    final daysInMonth =
+        DateUtils.getDaysInMonth(_focusedDay.year, _focusedDay.month);
+    final firstDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
+    final firstWeekday = firstDayOfMonth.weekday; // 1 = Mon, 7 = Sun
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Color(0xFF111111),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          habit.title.toUpperCase(),
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${habit.frequency.name.toUpperCase()} • ${habit.category.name.toUpperCase()}',
+                          style: GoogleFonts.inter(color: Colors.white54),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (habit.relatedAttribute != null)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: primary.withOpacity(0.5)),
+                      ),
+                      child: Text(
+                        habit.relatedAttribute!,
+                        style: GoogleFonts.jetBrainsMono(
+                            color: primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                ],
+              ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      children: [
+                        Text('BEST STREAK',
+                            style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Text('🔥 ${habit.bestStreak}',
+                            style: GoogleFonts.jetBrainsMono(
+                                fontSize: 18,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      children: [
+                        Text('CURRENT STREAK',
+                            style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Text('${habit.currentStreak}',
+                            style: GoogleFonts.jetBrainsMono(
+                                fontSize: 18,
+                                color: primary,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              // Calendar Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        _focusedDay =
+                            DateTime(_focusedDay.year, _focusedDay.month - 1);
+                      });
+                    },
+                  ),
+                  Text(
+                    DateFormat.yMMMM().format(_focusedDay).toUpperCase(),
+                    style: GoogleFonts.jetBrainsMono(
+                      color: primary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        _focusedDay =
+                            DateTime(_focusedDay.year, _focusedDay.month + 1);
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Weekday Headers
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                    .map((day) => SizedBox(
+                          width: 40,
+                          child: Center(
+                            child: Text(
+                              day,
+                              style: GoogleFonts.jetBrainsMono(
+                                color: Colors.white30,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 12),
+
+              // Calendar Grid
+              Expanded(
+                child: GridView.builder(
+                  controller: scrollController,
+                  itemCount: daysInMonth + (firstWeekday - 1),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, index) {
+                    if (index < firstWeekday - 1) {
+                      return const SizedBox();
+                    }
+                    final day = index - (firstWeekday - 1) + 1;
+                    final date =
+                        DateTime(_focusedDay.year, _focusedDay.month, day);
+
+                    final isCompleted = completedDates.any((d) =>
+                        d.year == date.year &&
+                        d.month == date.month &&
+                        d.day == date.day);
+
+                    final isToday = DateUtils.isSameDay(date, DateTime.now());
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: isCompleted
+                            ? (habit.type == HabitType.good
+                                ? const Color(0xFF00FF9D).withOpacity(0.2)
+                                : Colors.redAccent.withOpacity(0.2))
+                            : (isToday
+                                ? Colors.white.withOpacity(0.1)
+                                : Colors.transparent),
+                        shape: BoxShape.circle,
+                        border: isCompleted || isToday
+                            ? Border.all(
+                                color: isCompleted
+                                    ? (habit.type == HabitType.good
+                                        ? const Color(0xFF00FF9D)
+                                        : Colors.redAccent)
+                                    : Colors.white24)
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$day',
+                          style: GoogleFonts.inter(
+                            color: isCompleted ? Colors.white : Colors.white24,
+                            fontWeight: isCompleted || isToday
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
