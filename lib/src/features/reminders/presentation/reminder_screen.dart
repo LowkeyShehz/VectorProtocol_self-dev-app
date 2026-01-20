@@ -54,10 +54,37 @@ class ReminderScreen extends ConsumerWidget {
               }
 
               final groupedReminders = <String, List<Reminder>>{};
+              final now = DateTime.now();
+
+              // Sort reminders:
+              // 1. Upcoming first
+              // 2. Archived (past & different day) last
+              // 3. Within groups, sort by time diff
               final sortedReminders = List<Reminder>.from(reminders)
-                ..sort((a, b) => a.remindAt.compareTo(b.remindAt));
+                ..sort((a, b) {
+                  final aIsPast = a.remindAt.isBefore(now);
+                  final bIsPast = b.remindAt.isBefore(now);
+
+                  final aIsToday = a.remindAt.year == now.year &&
+                      a.remindAt.month == now.month &&
+                      a.remindAt.day == now.day;
+                  final bIsToday = b.remindAt.year == now.year &&
+                      b.remindAt.month == now.month &&
+                      b.remindAt.day == now.day;
+
+                  final aIsArchived = aIsPast && !aIsToday;
+                  final bIsArchived = bIsPast && !bIsToday;
+
+                  if (aIsArchived && !bIsArchived) return 1;
+                  if (!aIsArchived && bIsArchived) return -1;
+
+                  return a.remindAt.compareTo(b.remindAt);
+                });
 
               for (var reminder in sortedReminders) {
+                // If archived, maybe group them separately?
+                // Or just keep them in their respective month buckets but sorted at bottom of that month?
+                // The sort above handles list order.
                 final key = DateFormat.yMMMM().format(reminder.remindAt);
                 if (!groupedReminders.containsKey(key)) {
                   groupedReminders[key] = [];
@@ -147,7 +174,19 @@ class _ReminderTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primary = Theme.of(context).colorScheme.primary;
-    final isPast = item.remindAt.isBefore(DateTime.now());
+    final now = DateTime.now();
+    final isPast = item.remindAt.isBefore(now);
+    final isToday = item.remindAt.year == now.year &&
+        item.remindAt.month == now.month &&
+        item.remindAt.day == now.day;
+    final isArchived = isPast && !isToday; // Key archived check
+
+    // Visual styles for archived items
+    final textColor = isArchived ? Colors.grey : Colors.white;
+    final timeColor =
+        isArchived ? Colors.white24 : (isPast ? Colors.white38 : Colors.white);
+    final decoration = isArchived ? TextDecoration.lineThrough : null;
+    final badgeColor = isArchived ? Colors.grey : primary;
 
     return GestureDetector(
       onLongPress: () {
@@ -165,11 +204,12 @@ class _ReminderTile extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withOpacity(isArchived ? 0.02 : 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border(
-              left:
-                  BorderSide(color: isPast ? Colors.grey : primary, width: 4)),
+              left: BorderSide(
+                  color: isArchived ? Colors.grey.shade800 : badgeColor,
+                  width: 4)),
         ),
         child: Row(
           children: [
@@ -178,9 +218,10 @@ class _ReminderTile extends ConsumerWidget {
                 Text(
                   DateFormat('HH:mm').format(item.remindAt),
                   style: GoogleFonts.jetBrainsMono(
-                    color: isPast ? Colors.white38 : Colors.white,
+                    color: timeColor,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    decoration: decoration, // Strike time
                   ),
                 ),
                 Text(
@@ -202,6 +243,7 @@ class _ReminderTile extends ConsumerWidget {
                   image: DecorationImage(
                     image: FileImage(File(item.imagePath!)),
                     fit: BoxFit.cover,
+                    opacity: isArchived ? 0.5 : 1.0,
                   ),
                 ),
               ),
@@ -211,23 +253,26 @@ class _ReminderTile extends ConsumerWidget {
               child: Text(
                 item.title,
                 style: GoogleFonts.inter(
-                  color: item.isActive ? Colors.white : Colors.white24,
+                  color: item.isActive ? textColor : Colors.white24,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  decoration:
-                      !item.isActive ? TextDecoration.lineThrough : null,
+                  decoration: !item.isActive
+                      ? TextDecoration.lineThrough
+                      : decoration, // Strike title if inactive OR archived
                 ),
               ),
             ),
-            Switch.adaptive(
-              value: item.isActive,
-              onChanged: (val) {
-                ref
-                    .read(reminderControllerProvider.notifier)
-                    .toggleReminder(item.id);
-              },
-              activeColor: primary,
-            ),
+            if (!isArchived)
+              Switch.adaptive(
+                value: item.isActive,
+                onChanged: (val) {
+                  ref
+                      .read(reminderControllerProvider.notifier)
+                      .toggleReminder(item.id);
+                },
+                activeColor: primary,
+                inactiveTrackColor: Colors.white10,
+              ),
           ],
         ),
       ),
@@ -309,155 +354,158 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
         right: 24,
         top: 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isEditing ? 'EDIT SIGNAL' : 'NEW SIGNAL',
-                style: GoogleFonts.jetBrainsMono(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isEditing ? 'EDIT SIGNAL' : 'NEW SIGNAL',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt, color: Colors.white70),
-                    tooltip: 'Take Photo',
-                  ),
-                  IconButton(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon:
-                        const Icon(Icons.photo_library, color: Colors.white70),
-                    tooltip: 'Choose from Gallery',
-                  ),
-                  if (isEditing)
+                Row(
+                  children: [
                     IconButton(
-                      onPressed: () {
-                        ref
-                            .read(reminderControllerProvider.notifier)
-                            .deleteReminder(widget.existingItem!.id);
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      onPressed: () => _pickImage(ImageSource.camera),
+                      icon: const Icon(Icons.camera_alt, color: Colors.white70),
+                      tooltip: 'Take Photo',
                     ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Image Preview
-          if (_selectedImage != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white24),
-                      image: DecorationImage(
-                        image: FileImage(_selectedImage!),
-                        fit: BoxFit.cover,
+                    IconButton(
+                      onPressed: () => _pickImage(ImageSource.gallery),
+                      icon: const Icon(Icons.photo_library,
+                          color: Colors.white70),
+                      tooltip: 'Choose from Gallery',
+                    ),
+                    if (isEditing)
+                      IconButton(
+                        onPressed: () {
+                          ref
+                              .read(reminderControllerProvider.notifier)
+                              .deleteReminder(widget.existingItem!.id);
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Image Preview
+            if (_selectedImage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white24),
+                        image: DecorationImage(
+                          image: FileImage(_selectedImage!),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => setState(() => _selectedImage = null),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black54,
+                    IconButton(
+                      onPressed: () => setState(() => _selectedImage = null),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black54,
+                      ),
                     ),
+                  ],
+                ),
+              ),
+
+            TextField(
+              controller: _titleController,
+              style: GoogleFonts.inter(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Reminder Title',
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              autofocus: !isEditing,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 180,
+              child: CupertinoTheme(
+                data: const CupertinoThemeData(
+                  brightness: Brightness.dark,
+                  textTheme: CupertinoTextThemeData(
+                    pickerTextStyle:
+                        TextStyle(color: Colors.white, fontSize: 16),
                   ),
-                ],
-              ),
-            ),
-
-          TextField(
-            controller: _titleController,
-            style: GoogleFonts.inter(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Reminder Title',
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            autofocus: !isEditing,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 180,
-            child: CupertinoTheme(
-              data: const CupertinoThemeData(
-                brightness: Brightness.dark,
-                textTheme: CupertinoTextThemeData(
-                  pickerTextStyle: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.dateAndTime,
+                  initialDateTime: _scheduledTime,
+                  onDateTimeChanged: (val) {
+                    setState(() => _scheduledTime = val);
+                  },
                 ),
               ),
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.dateAndTime,
-                initialDateTime: _scheduledTime,
-                onDateTimeChanged: (val) {
-                  setState(() => _scheduledTime = val);
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (_titleController.text.isEmpty) return;
+
+                  if (isEditing) {
+                    final updatedItem = widget.existingItem!
+                      ..title = _titleController.text
+                      ..remindAt = _scheduledTime
+                      ..imagePath =
+                          _selectedImage?.path; // Allow clearing image if null
+
+                    ref
+                        .read(reminderControllerProvider.notifier)
+                        .editReminder(updatedItem);
+                  } else {
+                    ref.read(reminderControllerProvider.notifier).addReminder(
+                          _titleController.text,
+                          _scheduledTime,
+                          imagePath: _selectedImage?.path,
+                        );
+                  }
+                  Navigator.pop(context);
                 },
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () {
-                if (_titleController.text.isEmpty) return;
-
-                if (isEditing) {
-                  final updatedItem = widget.existingItem!
-                    ..title = _titleController.text
-                    ..remindAt = _scheduledTime
-                    ..imagePath =
-                        _selectedImage?.path; // Allow clearing image if null
-
-                  ref
-                      .read(reminderControllerProvider.notifier)
-                      .editReminder(updatedItem);
-                } else {
-                  ref.read(reminderControllerProvider.notifier).addReminder(
-                        _titleController.text,
-                        _scheduledTime,
-                        imagePath: _selectedImage?.path,
-                      );
-                }
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  isEditing ? 'UPDATE SIGNAL' : 'SCHEDULE SIGNAL',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ),
-              child: Text(
-                isEditing ? 'UPDATE SIGNAL' : 'SCHEDULE SIGNAL',
-                style: GoogleFonts.jetBrainsMono(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
-          ).animate().slideY(begin: 0.5, end: 0, delay: 200.ms),
-        ],
+            ).animate().slideY(begin: 0.5, end: 0, delay: 200.ms),
+          ],
+        ),
       ),
     );
   }

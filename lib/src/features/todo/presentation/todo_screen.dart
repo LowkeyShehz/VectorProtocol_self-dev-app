@@ -209,34 +209,6 @@ class _TodoTile extends ConsumerWidget {
         child: ListTile(
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          leading: InkWell(
-            onTap: () {
-              ref
-                  .read(todoControllerProvider.notifier)
-                  .toggleCompletion(item.id);
-            },
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: item.isCompleted
-                      ? Colors.grey
-                      : (isOverdue
-                          ? Colors.redAccent
-                          : Theme.of(context).colorScheme.primary),
-                  width: 2,
-                ),
-                color: item.isCompleted
-                    ? Colors.grey.withOpacity(0.2)
-                    : Colors.transparent,
-              ),
-              child: item.isCompleted
-                  ? const Icon(Icons.check, size: 16, color: Colors.grey)
-                  : null,
-            ),
-          ),
           title: Text(
             item.title,
             style: GoogleFonts.inter(
@@ -279,6 +251,34 @@ class _TodoTile extends ConsumerWidget {
                 ],
               ),
             ],
+          ),
+          trailing: InkWell(
+            onTap: () {
+              ref
+                  .read(todoControllerProvider.notifier)
+                  .toggleCompletion(item.id);
+            },
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: item.isCompleted
+                      ? Colors.grey
+                      : (isOverdue
+                          ? Colors.redAccent
+                          : Theme.of(context).colorScheme.primary),
+                  width: 2,
+                ),
+                color: item.isCompleted
+                    ? Colors.grey.withOpacity(0.2)
+                    : Colors.transparent,
+              ),
+              child: item.isCompleted
+                  ? const Icon(Icons.check, size: 16, color: Colors.grey)
+                  : null,
+            ),
           ),
         ),
       ),

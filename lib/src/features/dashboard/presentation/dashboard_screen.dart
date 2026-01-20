@@ -253,22 +253,29 @@ class DashboardScreen extends ConsumerWidget {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     // Level
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text('LEVEL ${profile.level}',
-                                            style: GoogleFonts.jetBrainsMono(
-                                                color: primaryColor,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16)),
-                                        const SizedBox(height: 4),
-                                        Text('${profile.xp} XP',
-                                            style: GoogleFonts.jetBrainsMono(
-                                                color: Colors.grey,
-                                                fontSize: 10)),
-                                      ],
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('LEVEL ${profile.level}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.jetBrainsMono(
+                                                  color: primaryColor,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16)),
+                                          const SizedBox(height: 4),
+                                          Text('${profile.xp} XP',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.jetBrainsMono(
+                                                  color: Colors.grey,
+                                                  fontSize: 10)),
+                                        ],
+                                      ),
                                     ),
+                                    const SizedBox(width: 16),
                                     // Streak
                                     Container(
                                       padding: const EdgeInsets.all(8),
@@ -281,18 +288,23 @@ class DashboardScreen extends ConsumerWidget {
                                                 .withOpacity(0.3)),
                                       ),
                                       child: Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           const Icon(
                                               Icons.local_fire_department,
                                               color: Color(0xFFFF5252),
                                               size: 16),
                                           const SizedBox(width: 4),
-                                          Text(
-                                            '${profile.appStreak} DAY STREAK',
-                                            style: GoogleFonts.jetBrainsMono(
-                                              color: const Color(0xFFFF5252),
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                          Flexible(
+                                            child: Text(
+                                              '${profile.appStreak} DAY STREAK',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.jetBrainsMono(
+                                                color: const Color(0xFFFF5252),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -418,26 +430,46 @@ class DashboardScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               remindersAsync.when(
                 data: (reminders) {
-                  final incoming = reminders
-                      .where((r) =>
-                          r.isActive && r.remindAt.isAfter(DateTime.now()))
-                      .take(3)
-                      .toList();
-                  if (incoming.isEmpty) {
+                  final now = DateTime.now();
+                  // Step 0: Get all active reminders
+                  final activeReminders =
+                      reminders.where((r) => r.isActive).toList();
+
+                  // Step 1: Filter out archived reminders (strikethrough items)
+                  // Archived = Past AND NOT Today
+                  final currentReminders = activeReminders.where((r) {
+                    final isPast = r.remindAt.isBefore(now);
+                    final isToday = r.remindAt.year == now.year &&
+                        r.remindAt.month == now.month &&
+                        r.remindAt.day == now.day;
+                    final isArchived = isPast && !isToday;
+                    return !isArchived; // Only keep non-archived
+                  }).toList();
+
+                  // Step 2: Sort remaining items by date
+                  currentReminders
+                      .sort((a, b) => a.remindAt.compareTo(b.remindAt));
+
+                  // Step 3: Take top 5
+                  final displayList = currentReminders.take(5).toList();
+
+                  if (displayList.isEmpty) {
                     return const Text('No signals detected.',
                         style: TextStyle(color: Colors.white38));
                   }
                   return Column(
-                    children: incoming
-                        .map((r) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
-                              child: _ReminderItem(
-                                time: DateFormat('HH:mm').format(r.remindAt),
-                                label: r.title,
-                                primaryColor: primaryColor,
-                              ),
-                            ))
-                        .toList(),
+                    children: displayList.map((r) {
+                      // We know these are NOT archived
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: _ReminderItem(
+                          time: DateFormat('HH:mm').format(r.remindAt),
+                          label: r.title,
+                          primaryColor: primaryColor,
+                          isArchived: false,
+                        ),
+                      );
+                    }).toList(),
                   );
                 },
                 loading: () => const SizedBox(),
@@ -549,12 +581,6 @@ class _TodoItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            isDone ? Icons.check_circle_outline : Icons.radio_button_unchecked,
-            color: isDone ? Colors.grey : primaryColor,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
@@ -564,6 +590,12 @@ class _TodoItem extends StatelessWidget {
                 decoration: isDone ? TextDecoration.lineThrough : null,
               ),
             ),
+          ),
+          const SizedBox(width: 12),
+          Icon(
+            isDone ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+            color: isDone ? Colors.grey : primaryColor,
+            size: 20,
           ),
         ],
       ),
@@ -575,18 +607,25 @@ class _ReminderItem extends StatelessWidget {
   final String time;
   final String label;
   final Color primaryColor;
+  final bool isArchived;
 
   const _ReminderItem({
     required this.time,
     required this.label,
     required this.primaryColor,
+    this.isArchived = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
+    // Archive style: dim background, grey text
+    final cardColor = isArchived
+        ? (isDark ? Colors.white.withOpacity(0.02) : Colors.grey.shade200)
+        : (isDark ? Colors.white.withOpacity(0.05) : Colors.white);
+    final textColor =
+        isArchived ? Colors.grey : (isDark ? Colors.white : Colors.black);
+    final badgeColor = isArchived ? Colors.grey : primaryColor;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -599,25 +638,29 @@ class _ReminderItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.1),
+              color: badgeColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: primaryColor.withOpacity(0.3)),
+              border: Border.all(color: badgeColor.withOpacity(0.3)),
             ),
             child: Text(
               time,
               style: GoogleFonts.jetBrainsMono(
-                color: primaryColor,
+                color: badgeColor,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
+                decoration: isArchived ? TextDecoration.lineThrough : null,
               ),
             ),
           ),
           const SizedBox(width: 16),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              color: textColor,
-              fontSize: 14,
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                color: textColor,
+                fontSize: 14,
+                decoration: isArchived ? TextDecoration.lineThrough : null,
+              ),
             ),
           ),
         ],

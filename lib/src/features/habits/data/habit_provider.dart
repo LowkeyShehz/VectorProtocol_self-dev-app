@@ -63,6 +63,14 @@ class HabitController extends _$HabitController {
         await isar.habits.put(habit);
       }
     });
+
+    final profileController = ref.read(profileControllerProvider.notifier);
+    if (!wasCompleted) {
+      await profileController.reportHabitCompletion(true);
+    } else {
+      await profileController.reportHabitCompletion(false);
+    }
+
     ref.invalidateSelf();
 
     if (linkedAttribute != null) {

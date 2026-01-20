@@ -26,6 +26,9 @@ class Profile {
   int appStreak = 0;
   DateTime? lastAppOpenDate;
 
+  int totalHabitsCompleted = 0;
+  int totalTodosCompleted = 0;
+
   List<String> completedAchievements = [];
 
   Profile();
@@ -42,6 +45,8 @@ class Profile {
     this.level = 1,
     this.appStreak = 0,
     this.lastAppOpenDate,
+    this.totalHabitsCompleted = 0,
+    this.totalTodosCompleted = 0,
     this.completedAchievements = const [],
   });
 }

@@ -6,6 +6,7 @@ import 'package:level_up/src/features/reminders/services/notification_service.da
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService().init();
+  await NotificationService().requestPermissions();
   runApp(
     ProviderScope(
       child: const LevelUpApp(),

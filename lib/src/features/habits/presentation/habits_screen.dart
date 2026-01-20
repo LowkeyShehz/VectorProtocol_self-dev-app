@@ -384,8 +384,11 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
                     const SizedBox(height: 8),
                     DropdownButtonFormField<HabitCategory>(
                       value: _category,
+                      isExpanded: true, // Key property to prevent overflow
                       dropdownColor: const Color(0xFF222222),
-                      style: GoogleFonts.inter(color: Colors.white),
+                      style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 13), // Reduce font slightly
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
@@ -399,7 +402,10 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
                       items: HabitCategory.values
                           .map((c) => DropdownMenuItem(
                                 value: c,
-                                child: Text(c.name.toUpperCase()),
+                                child: Text(
+                                  c.name.toUpperCase(),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ))
                           .toList(),
                       onChanged: (val) => setState(() => _category = val!),
@@ -418,8 +424,10 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
                     const SizedBox(height: 8),
                     DropdownButtonFormField<HabitFrequency>(
                       value: _frequency,
+                      isExpanded: true, // Key property
                       dropdownColor: const Color(0xFF222222),
-                      style: GoogleFonts.inter(color: Colors.white),
+                      style:
+                          GoogleFonts.inter(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
@@ -433,7 +441,10 @@ class _CreateHabitModalState extends ConsumerState<_CreateHabitModal> {
                       items: HabitFrequency.values
                           .map((f) => DropdownMenuItem(
                                 value: f,
-                                child: Text(f.name.toUpperCase()),
+                                child: Text(
+                                  f.name.toUpperCase(),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ))
                           .toList(),
                       onChanged: (val) => setState(() => _frequency = val!),

@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'package:isar/isar.dart';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../common/data/isar_service.dart';
 import '../domain/profile_model.dart';
+import '../domain/achievement_definitions.dart';
 
 import '../../reminders/services/notification_service.dart';
 
@@ -126,6 +127,48 @@ class ProfileController extends _$ProfileController {
       }
     }
 
+    // Check Streak Achievements
+    List<String> completedIds = List.from(profile.completedAchievements);
+    bool achievementAdded = false;
+
+    if (profile.appStreak >= 3 && !completedIds.contains('streak_3')) {
+      completedIds.add('streak_3');
+      profile.xp += 100;
+      achievementAdded = true;
+    }
+    if (profile.appStreak >= 7 && !completedIds.contains('streak_7')) {
+      completedIds.add('streak_7');
+      profile.xp += 250;
+      achievementAdded = true;
+    }
+
+    if (achievementAdded) {
+      profile.completedAchievements = completedIds;
+      // Recalculate levels
+      int xp = profile.xp;
+      int level = profile.level;
+      int threshold = level * 100;
+      while (xp >= threshold) {
+        xp -= threshold;
+        level++;
+        threshold = level * 100;
+      }
+      profile.xp = xp;
+      profile.level = level;
+      needsSave = true;
+    }
+
+    // Sanitize Bad Data (e.g. Negative Level)
+    if (profile.level < 1) {
+      profile.level = 1;
+      profile.xp = 0;
+      needsSave = true;
+    }
+    if (profile.xp < 0) {
+      profile.xp = 0;
+      needsSave = true;
+    }
+
     if (needsSave) {
       await isar.writeTxn(() async {
         await isar.profiles.put(profile);
@@ -145,6 +188,8 @@ class ProfileController extends _$ProfileController {
     int? motivationMinute,
     int? xp,
     int? level,
+    int? totalHabitsCompleted,
+    int? totalTodosCompleted,
     List<String>? completedAchievements,
   }) async {
     final isar = await ref.watch(isarDbProvider.future);
@@ -166,12 +211,19 @@ class ProfileController extends _$ProfileController {
       ..level = level ?? currentProfile.level
       ..appStreak = currentProfile.appStreak
       ..lastAppOpenDate = currentProfile.lastAppOpenDate
+      ..totalHabitsCompleted =
+          totalHabitsCompleted ?? currentProfile.totalHabitsCompleted
+      ..totalTodosCompleted =
+          totalTodosCompleted ?? currentProfile.totalTodosCompleted
       ..completedAchievements =
           completedAchievements ?? currentProfile.completedAchievements;
 
     await isar.writeTxn(() async {
       await isar.profiles.put(updatedProfile);
     });
+
+    // Implement immediate state update to prevent stale reads in sequential calls
+    state = AsyncValue.data(updatedProfile);
 
     // Handle Quote Scheduling if toggled or time changed
     final quotesEnabled =
@@ -190,8 +242,6 @@ class ProfileController extends _$ProfileController {
     } else if (dailyQuotesEnabled == false) {
       await NotificationService().cancelDailyQuotes();
     }
-
-    ref.invalidateSelf();
   }
 
   Future<bool> updateRadarChart(int index, String label, int value) async {
@@ -265,6 +315,120 @@ class ProfileController extends _$ProfileController {
       newLabels.removeAt(index);
       newValues.removeAt(index);
       await updateProfile(radarLabels: newLabels, radarValues: newValues);
+    }
+  }
+
+  Future<void> addXp(int amount) async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    int newXp = currentProfile.xp + amount;
+    int newLevel = currentProfile.level;
+
+    if (amount > 0) {
+      // Threshold for Level L to L+1: 100 + (L * 15)
+      int getThreshold(int lvl) => 100 + (lvl * 15);
+
+      int threshold = getThreshold(newLevel);
+      while (newXp >= threshold) {
+        newXp -= threshold;
+        newLevel++;
+        threshold = getThreshold(newLevel);
+      }
+    } else {
+      // Logic for losing XP (level down)
+      while (newXp < 0 && newLevel > 1) {
+        newLevel--;
+        int threshold =
+            100 + (newLevel * 15); // Threshold of the previous level
+        newXp += threshold;
+      }
+      if (newXp < 0) newXp = 0;
+    }
+
+    await updateProfile(xp: newXp, level: newLevel);
+    await checkAchievements();
+  }
+
+  Future<void> checkAchievements() async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    final completedIds =
+        List<String>.from(currentProfile.completedAchievements);
+    bool changed = false;
+    int xpToAdd = 0;
+
+    for (final achievement in allAchievements) {
+      if (completedIds.contains(achievement.id)) continue;
+
+      bool met = false;
+      switch (achievement.id) {
+        case 'habit_1':
+          met = currentProfile.totalHabitsCompleted >= 1;
+          break;
+        case 'streak_3':
+          met = currentProfile.appStreak >= 3;
+          break;
+        case 'streak_7':
+          met = currentProfile.appStreak >= 7;
+          break;
+        case 'level_5':
+          met = currentProfile.level >= 5;
+          break;
+        case 'todo_10':
+          met = currentProfile.totalTodosCompleted >= 10;
+          break;
+      }
+
+      if (met) {
+        completedIds.add(achievement.id);
+        xpToAdd += achievement.xpReward;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await updateProfile(completedAchievements: completedIds);
+      if (xpToAdd > 0) {
+        await addXp(xpToAdd);
+      }
+    }
+  }
+
+  Future<void> reportHabitCompletion(bool completed) async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    if (completed) {
+      await updateProfile(
+          totalHabitsCompleted: currentProfile.totalHabitsCompleted + 1);
+      await addXp(10);
+      await checkAchievements();
+    } else {
+      await updateProfile(
+          totalHabitsCompleted: currentProfile.totalHabitsCompleted > 0
+              ? currentProfile.totalHabitsCompleted - 1
+              : 0);
+      await addXp(-10);
+    }
+  }
+
+  Future<void> reportTodoCompletion(bool completed) async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    if (completed) {
+      await updateProfile(
+          totalTodosCompleted: currentProfile.totalTodosCompleted + 1);
+      await addXp(20);
+      await checkAchievements();
+    } else {
+      await updateProfile(
+          totalTodosCompleted: currentProfile.totalTodosCompleted > 0
+              ? currentProfile.totalTodosCompleted - 1
+              : 0);
+      await addXp(-20);
     }
   }
 }

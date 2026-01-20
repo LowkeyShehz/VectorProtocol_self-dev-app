@@ -17,61 +17,71 @@ const HabitSchema = CollectionSchema(
   name: r'Habit',
   id: 3896650575830519340,
   properties: {
-    r'category': PropertySchema(
+    r'bestStreak': PropertySchema(
       id: 0,
+      name: r'bestStreak',
+      type: IsarType.long,
+    ),
+    r'category': PropertySchema(
+      id: 1,
       name: r'category',
       type: IsarType.string,
       enumMap: _HabitcategoryEnumValueMap,
     ),
     r'color': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'color',
       type: IsarType.long,
     ),
     r'completedDates': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'completedDates',
       type: IsarType.dateTimeList,
     ),
     r'createdAt': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
+    r'currentStreak': PropertySchema(
+      id: 5,
+      name: r'currentStreak',
+      type: IsarType.long,
+    ),
     r'frequency': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'frequency',
       type: IsarType.string,
       enumMap: _HabitfrequencyEnumValueMap,
     ),
     r'relatedAttribute': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'relatedAttribute',
       type: IsarType.string,
     ),
     r'targetDays': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'targetDays',
       type: IsarType.longList,
     ),
     r'title': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'title',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'type',
       type: IsarType.string,
       enumMap: _HabittypeEnumValueMap,
     ),
     r'weeklyCount': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'weeklyCount',
       type: IsarType.long,
     ),
     r'weeklyType': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'weeklyType',
       type: IsarType.string,
       enumMap: _HabitweeklyTypeEnumValueMap,
@@ -124,17 +134,19 @@ void _habitSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.category.name);
-  writer.writeLong(offsets[1], object.color);
-  writer.writeDateTimeList(offsets[2], object.completedDates);
-  writer.writeDateTime(offsets[3], object.createdAt);
-  writer.writeString(offsets[4], object.frequency.name);
-  writer.writeString(offsets[5], object.relatedAttribute);
-  writer.writeLongList(offsets[6], object.targetDays);
-  writer.writeString(offsets[7], object.title);
-  writer.writeString(offsets[8], object.type.name);
-  writer.writeLong(offsets[9], object.weeklyCount);
-  writer.writeString(offsets[10], object.weeklyType?.name);
+  writer.writeLong(offsets[0], object.bestStreak);
+  writer.writeString(offsets[1], object.category.name);
+  writer.writeLong(offsets[2], object.color);
+  writer.writeDateTimeList(offsets[3], object.completedDates);
+  writer.writeDateTime(offsets[4], object.createdAt);
+  writer.writeLong(offsets[5], object.currentStreak);
+  writer.writeString(offsets[6], object.frequency.name);
+  writer.writeString(offsets[7], object.relatedAttribute);
+  writer.writeLongList(offsets[8], object.targetDays);
+  writer.writeString(offsets[9], object.title);
+  writer.writeString(offsets[10], object.type.name);
+  writer.writeLong(offsets[11], object.weeklyCount);
+  writer.writeString(offsets[12], object.weeklyType?.name);
 }
 
 Habit _habitDeserialize(
@@ -145,23 +157,23 @@ Habit _habitDeserialize(
 ) {
   final object = Habit();
   object.category =
-      _HabitcategoryValueEnumMap[reader.readStringOrNull(offsets[0])] ??
+      _HabitcategoryValueEnumMap[reader.readStringOrNull(offsets[1])] ??
           HabitCategory.health;
-  object.color = reader.readLong(offsets[1]);
-  object.completedDates = reader.readDateTimeList(offsets[2]) ?? [];
-  object.createdAt = reader.readDateTime(offsets[3]);
+  object.color = reader.readLong(offsets[2]);
+  object.completedDates = reader.readDateTimeList(offsets[3]) ?? [];
+  object.createdAt = reader.readDateTime(offsets[4]);
   object.frequency =
-      _HabitfrequencyValueEnumMap[reader.readStringOrNull(offsets[4])] ??
+      _HabitfrequencyValueEnumMap[reader.readStringOrNull(offsets[6])] ??
           HabitFrequency.daily;
   object.id = id;
-  object.relatedAttribute = reader.readStringOrNull(offsets[5]);
-  object.targetDays = reader.readLongList(offsets[6]) ?? [];
-  object.title = reader.readString(offsets[7]);
-  object.type = _HabittypeValueEnumMap[reader.readStringOrNull(offsets[8])] ??
+  object.relatedAttribute = reader.readStringOrNull(offsets[7]);
+  object.targetDays = reader.readLongList(offsets[8]) ?? [];
+  object.title = reader.readString(offsets[9]);
+  object.type = _HabittypeValueEnumMap[reader.readStringOrNull(offsets[10])] ??
       HabitType.good;
-  object.weeklyCount = reader.readLong(offsets[9]);
+  object.weeklyCount = reader.readLong(offsets[11]);
   object.weeklyType =
-      _HabitweeklyTypeValueEnumMap[reader.readStringOrNull(offsets[10])];
+      _HabitweeklyTypeValueEnumMap[reader.readStringOrNull(offsets[12])];
   return object;
 }
 
@@ -173,29 +185,33 @@ P _habitDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
+      return (reader.readLong(offset)) as P;
+    case 1:
       return (_HabitcategoryValueEnumMap[reader.readStringOrNull(offset)] ??
           HabitCategory.health) as P;
-    case 1:
-      return (reader.readLong(offset)) as P;
     case 2:
-      return (reader.readDateTimeList(offset) ?? []) as P;
+      return (reader.readLong(offset)) as P;
     case 3:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDateTimeList(offset) ?? []) as P;
     case 4:
+      return (reader.readDateTime(offset)) as P;
+    case 5:
+      return (reader.readLong(offset)) as P;
+    case 6:
       return (_HabitfrequencyValueEnumMap[reader.readStringOrNull(offset)] ??
           HabitFrequency.daily) as P;
-    case 5:
-      return (reader.readStringOrNull(offset)) as P;
-    case 6:
-      return (reader.readLongList(offset) ?? []) as P;
     case 7:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
+      return (reader.readLongList(offset) ?? []) as P;
+    case 9:
+      return (reader.readString(offset)) as P;
+    case 10:
       return (_HabittypeValueEnumMap[reader.readStringOrNull(offset)] ??
           HabitType.good) as P;
-    case 9:
+    case 11:
       return (reader.readLong(offset)) as P;
-    case 10:
+    case 12:
       return (_HabitweeklyTypeValueEnumMap[reader.readStringOrNull(offset)])
           as P;
     default:
@@ -336,6 +352,59 @@ extension HabitQueryWhere on QueryBuilder<Habit, Habit, QWhereClause> {
 }
 
 extension HabitQueryFilter on QueryBuilder<Habit, Habit, QFilterCondition> {
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> bestStreakEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'bestStreak',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> bestStreakGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'bestStreak',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> bestStreakLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'bestStreak',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> bestStreakBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'bestStreak',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Habit, Habit, QAfterFilterCondition> categoryEqualTo(
     HabitCategory value, {
     bool caseSensitive = true,
@@ -705,6 +774,59 @@ extension HabitQueryFilter on QueryBuilder<Habit, Habit, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'createdAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> currentStreakEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'currentStreak',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> currentStreakGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'currentStreak',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> currentStreakLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'currentStreak',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> currentStreakBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'currentStreak',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1642,6 +1764,18 @@ extension HabitQueryObject on QueryBuilder<Habit, Habit, QFilterCondition> {}
 extension HabitQueryLinks on QueryBuilder<Habit, Habit, QFilterCondition> {}
 
 extension HabitQuerySortBy on QueryBuilder<Habit, Habit, QSortBy> {
+  QueryBuilder<Habit, Habit, QAfterSortBy> sortByBestStreak() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bestStreak', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> sortByBestStreakDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bestStreak', Sort.desc);
+    });
+  }
+
   QueryBuilder<Habit, Habit, QAfterSortBy> sortByCategory() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'category', Sort.asc);
@@ -1675,6 +1809,18 @@ extension HabitQuerySortBy on QueryBuilder<Habit, Habit, QSortBy> {
   QueryBuilder<Habit, Habit, QAfterSortBy> sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> sortByCurrentStreak() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreak', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> sortByCurrentStreakDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreak', Sort.desc);
     });
   }
 
@@ -1752,6 +1898,18 @@ extension HabitQuerySortBy on QueryBuilder<Habit, Habit, QSortBy> {
 }
 
 extension HabitQuerySortThenBy on QueryBuilder<Habit, Habit, QSortThenBy> {
+  QueryBuilder<Habit, Habit, QAfterSortBy> thenByBestStreak() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bestStreak', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> thenByBestStreakDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'bestStreak', Sort.desc);
+    });
+  }
+
   QueryBuilder<Habit, Habit, QAfterSortBy> thenByCategory() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'category', Sort.asc);
@@ -1785,6 +1943,18 @@ extension HabitQuerySortThenBy on QueryBuilder<Habit, Habit, QSortThenBy> {
   QueryBuilder<Habit, Habit, QAfterSortBy> thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> thenByCurrentStreak() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreak', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterSortBy> thenByCurrentStreakDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentStreak', Sort.desc);
     });
   }
 
@@ -1874,6 +2044,12 @@ extension HabitQuerySortThenBy on QueryBuilder<Habit, Habit, QSortThenBy> {
 }
 
 extension HabitQueryWhereDistinct on QueryBuilder<Habit, Habit, QDistinct> {
+  QueryBuilder<Habit, Habit, QDistinct> distinctByBestStreak() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'bestStreak');
+    });
+  }
+
   QueryBuilder<Habit, Habit, QDistinct> distinctByCategory(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1896,6 +2072,12 @@ extension HabitQueryWhereDistinct on QueryBuilder<Habit, Habit, QDistinct> {
   QueryBuilder<Habit, Habit, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QDistinct> distinctByCurrentStreak() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'currentStreak');
     });
   }
 
@@ -1955,6 +2137,12 @@ extension HabitQueryProperty on QueryBuilder<Habit, Habit, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Habit, int, QQueryOperations> bestStreakProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'bestStreak');
+    });
+  }
+
   QueryBuilder<Habit, HabitCategory, QQueryOperations> categoryProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'category');
@@ -1977,6 +2165,12 @@ extension HabitQueryProperty on QueryBuilder<Habit, Habit, QQueryProperty> {
   QueryBuilder<Habit, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<Habit, int, QQueryOperations> currentStreakProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'currentStreak');
     });
   }
 

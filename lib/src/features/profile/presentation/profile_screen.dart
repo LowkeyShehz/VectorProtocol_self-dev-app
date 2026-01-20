@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../data/profile_provider.dart';
 import '../../dashboard/data/dashboard_provider.dart';
+import '../domain/achievement_definitions.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -218,6 +219,86 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Achievements Section
+                Text(
+                  'ACHIEVEMENTS',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                Column(
+                  children: allAchievements.map((achievement) {
+                    final isUnlocked =
+                        profile.completedAchievements.contains(achievement.id);
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color:
+                            isUnlocked ? primary.withOpacity(0.1) : cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: isUnlocked
+                            ? Border.all(color: primary.withOpacity(0.3))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isUnlocked
+                                  ? primary
+                                  : Colors.grey.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isUnlocked ? Icons.emoji_events : Icons.lock,
+                              color: isUnlocked ? Colors.black : Colors.grey,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  achievement.title,
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontWeight: FontWeight.bold,
+                                    color: isUnlocked ? textColor : Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  achievement.description,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: subTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isUnlocked)
+                            Text(
+                              "+${achievement.xpReward} XP",
+                              style: GoogleFonts.jetBrainsMono(
+                                color: primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
 
                 const SizedBox(height: 32),

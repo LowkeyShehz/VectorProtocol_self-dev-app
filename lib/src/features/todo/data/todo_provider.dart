@@ -3,6 +3,7 @@ import 'package:isar/isar.dart';
 import 'package:level_up/src/features/common/data/isar_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../domain/todo_model.dart';
+import '../../profile/data/profile_provider.dart';
 
 part 'todo_provider.g.dart';
 
@@ -24,13 +25,24 @@ class TodoController extends _$TodoController {
 
   Future<void> toggleCompletion(int id) async {
     final isar = await ref.watch(isarDbProvider.future);
+    bool isNowCompleted = false;
+
     await isar.writeTxn(() async {
       final item = await isar.todoItems.get(id);
       if (item != null) {
         item.isCompleted = !item.isCompleted;
+        isNowCompleted = item.isCompleted;
         await isar.todoItems.put(item);
       }
     });
+
+    final profileController = ref.read(profileControllerProvider.notifier);
+    if (isNowCompleted) {
+      await profileController.reportTodoCompletion(true);
+    } else {
+      await profileController.reportTodoCompletion(false);
+    }
+
     ref.invalidateSelf();
   }
 
