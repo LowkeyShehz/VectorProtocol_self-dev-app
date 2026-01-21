@@ -4,6 +4,7 @@ import 'package:level_up/src/features/common/data/isar_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../domain/reminder_model.dart';
 import '../services/notification_service.dart';
+import '../../profile/data/profile_provider.dart';
 
 part 'reminder_provider.g.dart';
 
@@ -53,6 +54,9 @@ class ReminderController extends _$ReminderController {
       remindAt,
       reminder.id.toString(),
     );
+
+    // Check achievements
+    ref.read(profileControllerProvider.notifier).reportReminderCreation();
 
     ref.invalidateSelf();
   }

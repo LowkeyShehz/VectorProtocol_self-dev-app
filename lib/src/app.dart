@@ -2,13 +2,75 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:level_up/src/routing/app_router.dart';
+import 'dart:async';
+import 'package:level_up/src/features/reminders/services/notification_service.dart';
 import 'package:level_up/src/features/profile/data/profile_provider.dart';
 
-class LevelUpApp extends ConsumerWidget {
+class LevelUpApp extends ConsumerStatefulWidget {
   const LevelUpApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LevelUpApp> createState() => _LevelUpAppState();
+}
+
+class _LevelUpAppState extends ConsumerState<LevelUpApp> {
+  StreamSubscription? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initNotifications();
+  }
+
+  Future<void> _initNotifications() async {
+    final ns = NotificationService();
+    // Initialize in parallel with UI
+    await ns.init();
+    ns.requestPermissions(); // Don't await permission request
+
+    if (!mounted) return;
+
+    _sub = ns.onNotificationTap.listen(_handlePayload);
+
+    // Check for pending payload from cold start
+    final pending = ns.pendingPayload;
+    if (pending != null) {
+      if (mounted) {
+        _handlePayload(pending);
+        ns.pendingPayload = null;
+      }
+    }
+  }
+
+  void _handlePayload(String? payload) {
+    if (payload != null && payload.startsWith('custom_media')) {
+      final parts = payload.split('|');
+      if (parts.length >= 3) {
+        final type = parts[1];
+        final path = parts.sublist(2).join('|');
+        final isVideo = type == 'video';
+
+        ref.read(goRouterProvider).push(
+              Uri(
+                path: '/media_viewer',
+                queryParameters: {
+                  'path': path,
+                  'is_video': isVideo.toString(),
+                },
+              ).toString(),
+            );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final goRouter = ref.watch(goRouterProvider);
     final profileAsync = ref.watch(profileControllerProvider);
 

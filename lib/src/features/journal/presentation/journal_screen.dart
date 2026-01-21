@@ -127,18 +127,14 @@ class _JournalEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onLongPress: () {
-        // Find the parent State object to call _showAddEntryModal
-        final screenState =
-            context.findAncestorWidgetOfExactType<JournalScreen>();
-        // Since JournalScreen is a ConsumerWidget, we can't call private methods directly easily
-        // But we can just duplicate the modal showing logic or move it to a global function if needed.
-        // Or better, just show the modal directly here.
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          backgroundColor: const Color(0xFF111111),
+          backgroundColor: isDark ? const Color(0xFF111111) : Colors.white,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -148,9 +144,10 @@ class _JournalEntryCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
+          border:
+              Border.all(color: isDark ? Colors.white10 : Colors.transparent),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -162,6 +159,7 @@ class _JournalEntryCard extends StatelessWidget {
                 height: 200,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                cacheWidth: 1000,
               ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -182,7 +180,7 @@ class _JournalEntryCard extends StatelessWidget {
                       Text(
                         DateFormat.jm().format(entry.date),
                         style: GoogleFonts.inter(
-                          color: Colors.white24,
+                          color: isDark ? Colors.white24 : Colors.black38,
                           fontSize: 12,
                         ),
                       ),
@@ -192,7 +190,7 @@ class _JournalEntryCard extends StatelessWidget {
                   Text(
                     entry.content,
                     style: GoogleFonts.inter(
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black87,
                       fontSize: 15,
                       height: 1.5,
                     ),
@@ -212,16 +210,21 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.book, size: 64, color: Colors.white.withOpacity(0.1)),
+          Icon(Icons.book,
+              size: 64,
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.1)),
           const SizedBox(height: 16),
           Text(
             'LOG YOUR JOURNEY',
             style: GoogleFonts.jetBrainsMono(
-              color: Colors.white54,
+              color: isDark ? Colors.white54 : Colors.black54,
               fontSize: 16,
             ),
           ),
@@ -268,6 +271,7 @@ class _CreateJournalModalState extends ConsumerState<_CreateJournalModal> {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
     final isEditing = widget.existingEntry != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -286,7 +290,7 @@ class _CreateJournalModalState extends ConsumerState<_CreateJournalModal> {
               Text(
                 isEditing ? 'EDIT ENTRY' : 'LOG ENTRY',
                 style: GoogleFonts.jetBrainsMono(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : Colors.black,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -331,9 +335,12 @@ class _CreateJournalModalState extends ConsumerState<_CreateJournalModal> {
                     height: 60,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.transparent),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -341,7 +348,9 @@ class _CreateJournalModalState extends ConsumerState<_CreateJournalModal> {
                         Icon(Icons.add_photo_alternate, color: primary),
                         const SizedBox(width: 8),
                         Text('Attach Image',
-                            style: GoogleFonts.inter(color: Colors.white70)),
+                            style: GoogleFonts.inter(
+                                color:
+                                    isDark ? Colors.white70 : Colors.black54)),
                       ],
                     ),
                   ),
@@ -349,11 +358,16 @@ class _CreateJournalModalState extends ConsumerState<_CreateJournalModal> {
           const SizedBox(height: 16),
           TextField(
             controller: _contentController,
-            style: GoogleFonts.inter(color: Colors.white),
+            style:
+                GoogleFonts.inter(color: isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: 'How was your day?',
+              hintStyle: GoogleFonts.inter(
+                  color: isDark ? Colors.white24 : Colors.black26),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.05),
+              fillColor: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.grey.shade200,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -376,9 +390,6 @@ class _CreateJournalModalState extends ConsumerState<_CreateJournalModal> {
                   final updatedEntry = widget.existingEntry!
                     ..content = _contentController.text
                     ..imagePath = _imagePath;
-                  // Note: Since Isar objects are just objects, modifying fields and put() works.
-                  // But check if we need to set other fields. Date stays original? or updates?
-                  // Usually journal date stays original.
                   ref
                       .read(journalControllerProvider.notifier)
                       .editEntry(updatedEntry);

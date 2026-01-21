@@ -96,13 +96,14 @@ class _HabitCard extends ConsumerWidget {
     final isGood = habit.type == HabitType.good;
     final color = isGood ? const Color(0xFF00FF9D) : Colors.redAccent;
     final isCompletedToday = habit.isCompletedOn(DateTime.now());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          backgroundColor: const Color(0xFF111111),
+          backgroundColor: isDark ? const Color(0xFF111111) : Colors.white,
           shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           builder: (context) => _HabitDetailsModal(habit: habit),
@@ -112,7 +113,7 @@ class _HabitCard extends ConsumerWidget {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          backgroundColor: const Color(0xFF111111),
+          backgroundColor: isDark ? const Color(0xFF111111) : Colors.white,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -123,7 +124,7 @@ class _HabitCard extends ConsumerWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(12),
           border: Border(left: BorderSide(color: color, width: 4)),
         ),
@@ -137,7 +138,7 @@ class _HabitCard extends ConsumerWidget {
                   Text(
                     habit.title,
                     style: GoogleFonts.inter(
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       decoration:
@@ -148,7 +149,7 @@ class _HabitCard extends ConsumerWidget {
                   Text(
                     _getFrequencyText(habit),
                     style: GoogleFonts.jetBrainsMono(
-                      color: Colors.grey,
+                      color: isDark ? Colors.grey : Colors.grey.shade700,
                       fontSize: 10,
                     ),
                   ),
@@ -162,7 +163,7 @@ class _HabitCard extends ConsumerWidget {
                   Text(
                     '🔥 ${habit.currentStreak}',
                     style: GoogleFonts.jetBrainsMono(
-                      color: const Color(0xFF00FF9D),
+                      color: isDark ? const Color(0xFF00FF9D) : Colors.green,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -184,7 +185,9 @@ class _HabitCard extends ConsumerWidget {
                           : Colors.transparent,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isCompletedToday ? color : Colors.white24,
+                        color: isCompletedToday
+                            ? color
+                            : (isDark ? Colors.white24 : Colors.black26),
                         width: 2,
                       ),
                     ),
@@ -221,16 +224,21 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.grid_off, size: 64, color: Colors.white.withOpacity(0.1)),
+          Icon(Icons.grid_off,
+              size: 64,
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.1)),
           const SizedBox(height: 16),
           Text(
             'NO PROTOCOLS FOUND',
             style: GoogleFonts.jetBrainsMono(
-              color: Colors.white54,
+              color: isDark ? Colors.white54 : Colors.black54,
               fontSize: 16,
             ),
           ),

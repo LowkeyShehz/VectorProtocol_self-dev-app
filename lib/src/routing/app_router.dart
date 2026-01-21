@@ -9,6 +9,7 @@ import 'package:level_up/src/features/reminders/presentation/reminder_screen.dar
 import 'package:level_up/src/features/profile/presentation/profile_screen.dart';
 import 'package:level_up/src/features/shell/presentation/scaffold_with_navigation.dart';
 import 'package:level_up/src/features/todo/presentation/todo_screen.dart';
+import '../features/reminders/presentation/media_viewer_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -80,6 +81,15 @@ GoRouter goRouter(GoRouterRef ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/media_viewer',
+        builder: (context, state) {
+          final path = state.uri.queryParameters['path'] ?? '';
+          final isVideo = state.uri.queryParameters['is_video'] == 'true';
+          return MediaViewerScreen(filePath: path, isVideo: isVideo);
+        },
       ),
     ],
   );

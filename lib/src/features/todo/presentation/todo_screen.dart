@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -7,6 +8,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 import '../data/todo_provider.dart';
 import '../domain/todo_model.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class TodoScreen extends ConsumerWidget {
   const TodoScreen({super.key});
@@ -120,7 +123,7 @@ class TodoScreen extends ConsumerWidget {
             FloatingActionButton(
               heroTag: 'camera',
               onPressed: () {
-                // Camera OCR logic
+                _captureImage(context);
               },
               backgroundColor: Colors.white.withOpacity(0.1),
               elevation: 0,
@@ -139,7 +142,59 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddTodoModal(BuildContext context, {TodoItem? existingItem}) {
+  Future<void> _captureImage(BuildContext context) async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.camera);
+    if (file == null) return;
+
+    // 1. Process OCR
+    String title = '';
+    String desc = '';
+
+    try {
+      final inputImage = InputImage.fromFilePath(file.path);
+      final textRecognizer =
+          TextRecognizer(script: TextRecognitionScript.latin);
+      final recognizedText = await textRecognizer.processImage(inputImage);
+      await textRecognizer.close();
+
+      String text = recognizedText.text.trim();
+      if (text.isNotEmpty) {
+        // Handwriting is often messy. Putting it all in description is safer.
+        title = 'Scanned Mission';
+        desc = text;
+      }
+    } catch (e) {
+      debugPrint('OCR failed: $e');
+    }
+
+    if (context.mounted) {
+      if (desc.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Text detected. Please review.',
+                style: GoogleFonts.inter()),
+            backgroundColor: Colors.black87,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
+      _showAddTodoModal(
+        context,
+        initialTitle: title,
+        initialDesc: desc,
+        initialImagePath: file.path,
+      );
+    }
+  }
+
+  void _showAddTodoModal(BuildContext context,
+      {TodoItem? existingItem,
+      String? initialTitle,
+      String? initialDesc,
+      String? initialImagePath}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -147,7 +202,12 @@ class TodoScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => _CreateTodoModal(existingItem: existingItem),
+      builder: (context) => _CreateTodoModal(
+        existingItem: existingItem,
+        initialTitle: initialTitle,
+        initialDesc: initialDesc,
+        initialImagePath: initialImagePath,
+      ),
     );
   }
 }
@@ -158,9 +218,10 @@ class _StickyHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 60,
-      color: Colors.black.withOpacity(0.9), // Sticky glass effect
+      color: (isDark ? Colors.black : Colors.white).withOpacity(0.9),
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
@@ -182,6 +243,7 @@ class _TodoTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOverdue = !item.isCompleted &&
         item.dueDate.isBefore(DateTime.now().subtract(const Duration(days: 1)));
 
@@ -190,7 +252,7 @@ class _TodoTile extends ConsumerWidget {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          backgroundColor: const Color(0xFF111111),
+          backgroundColor: isDark ? const Color(0xFF111111) : Colors.white,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -200,7 +262,7 @@ class _TodoTile extends ConsumerWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(12),
           border: isOverdue
               ? Border.all(color: Colors.redAccent.withOpacity(0.5))
@@ -209,12 +271,26 @@ class _TodoTile extends ConsumerWidget {
         child: ListTile(
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: item.imagePath != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(item.imagePath!),
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    cacheWidth: 200,
+                  ),
+                )
+              : null,
           title: Text(
             item.title,
             style: GoogleFonts.inter(
               color: item.isCompleted
-                  ? Colors.white24
-                  : (isOverdue ? Colors.redAccent : Colors.white),
+                  ? (isDark ? Colors.white24 : Colors.black26)
+                  : (isOverdue
+                      ? Colors.redAccent
+                      : (isDark ? Colors.white : Colors.black87)),
               fontSize: 16,
               fontWeight: FontWeight.w500,
               decoration: item.isCompleted ? TextDecoration.lineThrough : null,
@@ -228,8 +304,10 @@ class _TodoTile extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     item.description!,
-                    style:
-                        GoogleFonts.inter(color: Colors.white54, fontSize: 13),
+                    style: GoogleFonts.inter(
+                      color: isDark ? Colors.white54 : Colors.black54,
+                      fontSize: 13,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -239,12 +317,16 @@ class _TodoTile extends ConsumerWidget {
                 children: [
                   Icon(Icons.calendar_today,
                       size: 12,
-                      color: isOverdue ? Colors.redAccent : Colors.white24),
+                      color: isOverdue
+                          ? Colors.redAccent
+                          : (isDark ? Colors.white24 : Colors.black38)),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat.MMMd().format(item.dueDate),
                     style: GoogleFonts.jetBrainsMono(
-                      color: isOverdue ? Colors.redAccent : Colors.white38,
+                      color: isOverdue
+                          ? Colors.redAccent
+                          : (isDark ? Colors.white38 : Colors.black45),
                       fontSize: 11,
                     ),
                   ),
@@ -291,17 +373,21 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.check_box_outline_blank,
-              size: 64, color: Colors.white.withOpacity(0.1)),
+              size: 64,
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.1)),
           const SizedBox(height: 16),
           Text(
             'NO ACTIVE MISSIONS',
             style: GoogleFonts.jetBrainsMono(
-              color: Colors.white54,
+              color: isDark ? Colors.white54 : Colors.black54,
               fontSize: 16,
             ),
           ),
@@ -313,7 +399,16 @@ class _EmptyState extends StatelessWidget {
 
 class _CreateTodoModal extends ConsumerStatefulWidget {
   final TodoItem? existingItem;
-  const _CreateTodoModal({this.existingItem});
+  final String? initialTitle;
+  final String? initialDesc;
+  final String? initialImagePath;
+
+  const _CreateTodoModal({
+    this.existingItem,
+    this.initialTitle,
+    this.initialDesc,
+    this.initialImagePath,
+  });
 
   @override
   ConsumerState<_CreateTodoModal> createState() => _CreateTodoModalState();
@@ -323,6 +418,7 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  String? _imagePath;
 
   @override
   void initState() {
@@ -331,6 +427,13 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
       _titleController.text = widget.existingItem!.title;
       _descController.text = widget.existingItem!.description ?? '';
       _selectedDate = widget.existingItem!.dueDate;
+      _imagePath = widget.existingItem!.imagePath;
+    } else {
+      if (widget.initialTitle != null)
+        _titleController.text = widget.initialTitle!;
+      if (widget.initialDesc != null)
+        _descController.text = widget.initialDesc!;
+      if (widget.initialImagePath != null) _imagePath = widget.initialImagePath;
     }
   }
 
@@ -398,6 +501,20 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
             ],
           ),
           const SizedBox(height: 24),
+          if (_imagePath != null) ...[
+            Container(
+              height: 150,
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                image: DecorationImage(
+                  image: FileImage(File(_imagePath!)),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ],
           TextField(
             controller: _titleController,
             style: GoogleFonts.inter(color: Colors.white),
@@ -410,7 +527,7 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
                 borderSide: BorderSide.none,
               ),
             ),
-            autofocus: !isEditing,
+            autofocus: !isEditing && _imagePath == null,
           ),
           const SizedBox(height: 16),
           TextField(
@@ -462,7 +579,8 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
                   final updatedItem = widget.existingItem!
                     ..title = _titleController.text
                     ..description = _descController.text
-                    ..dueDate = _selectedDate;
+                    ..dueDate = _selectedDate
+                    ..imagePath = _imagePath;
 
                   ref
                       .read(todoControllerProvider.notifier)
@@ -473,6 +591,7 @@ class _CreateTodoModalState extends ConsumerState<_CreateTodoModal> {
                     description: _descController.text,
                     dueDate: _selectedDate,
                     isCompleted: false,
+                    imagePath: _imagePath,
                   );
 
                   ref.read(todoControllerProvider.notifier).addTodo(newItem);

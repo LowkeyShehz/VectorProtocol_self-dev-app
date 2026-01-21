@@ -1,10 +1,18 @@
+import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/profile_provider.dart';
 import '../../dashboard/data/dashboard_provider.dart';
 import '../domain/achievement_definitions.dart';
+import '../domain/profile_model.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -221,6 +229,16 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
 
+                const SizedBox(height: 12),
+                _CustomNotificationConfig(
+                  profile: profile,
+                  primary: primary,
+                  cardColor: cardColor,
+                  textColor: textColor,
+                  subTextColor: subTextColor,
+                  isDark: isDark,
+                ),
+
                 const SizedBox(height: 32),
 
                 // Achievements Section
@@ -233,72 +251,13 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                Column(
-                  children: allAchievements.map((achievement) {
-                    final isUnlocked =
-                        profile.completedAchievements.contains(achievement.id);
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color:
-                            isUnlocked ? primary.withOpacity(0.1) : cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: isUnlocked
-                            ? Border.all(color: primary.withOpacity(0.3))
-                            : null,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isUnlocked
-                                  ? primary
-                                  : Colors.grey.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              isUnlocked ? Icons.emoji_events : Icons.lock,
-                              color: isUnlocked ? Colors.black : Colors.grey,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  achievement.title,
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontWeight: FontWeight.bold,
-                                    color: isUnlocked ? textColor : Colors.grey,
-                                  ),
-                                ),
-                                Text(
-                                  achievement.description,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: subTextColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (isUnlocked)
-                            Text(
-                              "+${achievement.xpReward} XP",
-                              style: GoogleFonts.jetBrainsMono(
-                                color: primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                _AchievementsList(
+                  allAchievements: allAchievements,
+                  completedIds: profile.completedAchievements,
+                  primary: primary,
+                  cardColor: cardColor,
+                  textColor: textColor,
+                  subTextColor: subTextColor,
                 ),
 
                 const SizedBox(height: 32),
@@ -544,6 +503,135 @@ class ProfileScreen extends ConsumerWidget {
                   },
                 ),
 
+                const SizedBox(height: 48),
+
+                // Delete Data Option
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: const Color(0xFF222222),
+                          title: Text(
+                            'RESET APP DATA?',
+                            style: GoogleFonts.jetBrainsMono(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          content: Text(
+                            'This will delete ALL your progress, habits, todos, and settings. This action cannot be undone.',
+                            style: GoogleFonts.inter(color: Colors.white70),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('CANCEL'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(context); // Close dialog
+                                await ref
+                                    .read(profileControllerProvider.notifier)
+                                    .resetAllData();
+
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'SYSTEM RESET COMPLETED.',
+                                        style: GoogleFonts.jetBrainsMono(
+                                            color: Colors.white),
+                                      ),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                  // Optional: Navigate to home or just let the state rebuild
+                                  Navigator.of(context)
+                                      .popUntil((route) => route.isFirst);
+                                }
+                              },
+                              child: Text(
+                                'ERASE EVERYTHING',
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.delete_forever,
+                        color: Colors.redAccent),
+                    label: Text(
+                      'ERASE ALL DATA',
+                      style: GoogleFonts.jetBrainsMono(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      backgroundColor: Colors.redAccent.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 48),
+
+                // Developer Footer
+                Align(
+                  alignment: Alignment.center,
+                  child: Column(
+                    children: [
+                      Text(
+                        'Developed by: Shehzan Faqqih',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: Colors.grey,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () async {
+                          final uri = Uri.parse(
+                              'https://www.instagram.com/lowkeyshehz/');
+                          if (!await launchUrl(uri,
+                              mode: LaunchMode.externalApplication)) {
+                            // fallback
+                            debugPrint('Could not launch \$uri');
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.camera_alt_outlined,
+                                  size: 14, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Text(
+                                '@lowkeyshehz',
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 80),
               ],
             ),
@@ -667,6 +755,425 @@ class _RadarConfigTileState extends ConsumerState<_RadarConfigTile> {
               minHeight: 8,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AchievementsList extends StatefulWidget {
+  final List<Achievement> allAchievements;
+  final List<String> completedIds;
+  final Color primary;
+  final Color cardColor;
+  final Color textColor;
+  final Color subTextColor;
+
+  const _AchievementsList({
+    required this.allAchievements,
+    required this.completedIds,
+    required this.primary,
+    required this.cardColor,
+    required this.textColor,
+    required this.subTextColor,
+  });
+
+  @override
+  State<_AchievementsList> createState() => _AchievementsListState();
+}
+
+class _AchievementsListState extends State<_AchievementsList> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // Show 4 items initially
+    final initialCount = 4;
+    final displayedAchievements = _isExpanded
+        ? widget.allAchievements
+        : widget.allAchievements.take(initialCount).toList();
+
+    return Column(
+      children: [
+        Column(
+          children: displayedAchievements.map((achievement) {
+            final isUnlocked = widget.completedIds.contains(achievement.id);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isUnlocked
+                    ? widget.primary.withOpacity(0.1)
+                    : widget.cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: isUnlocked
+                    ? Border.all(color: widget.primary.withOpacity(0.3))
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isUnlocked
+                          ? widget.primary
+                          : Colors.grey.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isUnlocked ? Icons.emoji_events : Icons.lock,
+                      color: isUnlocked ? Colors.black : Colors.grey,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          achievement.title,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontWeight: FontWeight.bold,
+                            color: isUnlocked ? widget.textColor : Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          achievement.description,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: widget.subTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // XP Reward Display - Always Visible
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isUnlocked
+                          ? widget.primary.withOpacity(0.2)
+                          : Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      "+${achievement.xpReward} XP",
+                      style: GoogleFonts.jetBrainsMono(
+                        color: isUnlocked ? widget.primary : Colors.grey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+        if (widget.allAchievements.length > initialCount)
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            child: Text(
+              _isExpanded ? 'SEE LESS' : 'SEE MORE',
+              style: GoogleFonts.jetBrainsMono(
+                color: widget.primary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _CustomNotificationConfig extends ConsumerStatefulWidget {
+  final Profile profile;
+  final Color primary;
+  final Color cardColor;
+  final Color textColor;
+  final Color subTextColor;
+  final bool isDark;
+
+  const _CustomNotificationConfig({
+    required this.profile,
+    required this.primary,
+    required this.cardColor,
+    required this.textColor,
+    required this.subTextColor,
+    required this.isDark,
+  });
+
+  @override
+  ConsumerState<_CustomNotificationConfig> createState() =>
+      _CustomNotificationConfigState();
+}
+
+class _CustomNotificationConfigState
+    extends ConsumerState<_CustomNotificationConfig> {
+  late TextEditingController _messageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _messageController =
+        TextEditingController(text: widget.profile.customNotificationMessage);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomNotificationConfig oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.customNotificationMessage !=
+        widget.profile.customNotificationMessage) {
+      _messageController.text = widget.profile.customNotificationMessage;
+    }
+  }
+
+  Future<void> _pickMedia(bool isVideo) async {
+    final picker = ImagePicker();
+    final XFile? file = isVideo
+        ? await picker.pickVideo(source: ImageSource.gallery)
+        : await picker.pickImage(source: ImageSource.gallery);
+
+    if (file != null) {
+      // Copy to app documents to persist
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName =
+          'custom_signal_${DateTime.now().millisecondsSinceEpoch}${path.extension(file.path)}';
+      final savedFile = await File(file.path).copy('${appDir.path}/$fileName');
+
+      await ref.read(profileControllerProvider.notifier).updateProfile(
+            customNotificationMediaPath: savedFile.path,
+            isCustomNotificationVideo: isVideo,
+          );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine media status
+    String mediaStatus = 'No media attached';
+    IconData mediaIcon = Icons.attach_file;
+    Color mediaColor = widget.subTextColor;
+
+    if (widget.profile.customNotificationMediaPath != null) {
+      mediaStatus = widget.profile.isCustomNotificationVideo
+          ? 'Video attached'
+          : 'Image attached';
+      mediaIcon = widget.profile.isCustomNotificationVideo
+          ? Icons.videocam
+          : Icons.image;
+      mediaColor = widget.primary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: widget.cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.notification_add, color: widget.subTextColor),
+                  const SizedBox(width: 16),
+                  Text(
+                    'CUSTOM SIGNAL',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: widget.textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              Switch(
+                value: widget.profile.customNotificationEnabled,
+                activeColor: widget.primary,
+                onChanged: (val) async {
+                  if (val) {
+                    final status = await Permission.systemAlertWindow.status;
+                    if (!status.isGranted) {
+                      if (context.mounted) {
+                        await showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text('Permission Required',
+                                style: GoogleFonts.jetBrainsMono(
+                                    fontWeight: FontWeight.bold)),
+                            content: Text(
+                              'To display your custom signal instantly over other apps (even when locked), please allow "Display over other apps" permission.',
+                              style: GoogleFonts.inter(),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('Cancel',
+                                    style: GoogleFonts.jetBrainsMono(
+                                        color: Colors.grey)),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await Permission.systemAlertWindow.request();
+                                },
+                                child: Text('Open Settings',
+                                    style: GoogleFonts.jetBrainsMono(
+                                        color: widget.primary)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    }
+                  }
+
+                  ref
+                      .read(profileControllerProvider.notifier)
+                      .updateProfile(customNotificationEnabled: val);
+                },
+              ),
+            ],
+          ),
+          if (widget.profile.customNotificationEnabled) ...[
+            const SizedBox(height: 16),
+            // Time Picker
+            InkWell(
+              onTap: () async {
+                final now = TimeOfDay(
+                    hour: widget.profile.customNotificationHour,
+                    minute: widget.profile.customNotificationMinute);
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: now,
+                  builder: (context, child) {
+                    return Theme(
+                      data: widget.isDark
+                          ? ThemeData.dark().copyWith(
+                              colorScheme: ColorScheme.dark(
+                                primary: widget.primary,
+                                onPrimary: Colors.black,
+                                surface: const Color(0xFF222222),
+                                onSurface: Colors.white,
+                              ),
+                            )
+                          : ThemeData.light(),
+                      child: child!,
+                    );
+                  },
+                );
+
+                if (picked != null) {
+                  ref.read(profileControllerProvider.notifier).updateProfile(
+                      customNotificationHour: picked.hour,
+                      customNotificationMinute: picked.minute);
+                }
+              },
+              child: Row(
+                children: [
+                  Icon(Icons.access_time,
+                      size: 16, color: widget.primary.withOpacity(0.7)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Time: ${TimeOfDay(hour: widget.profile.customNotificationHour, minute: widget.profile.customNotificationMinute).format(context)}',
+                    style: GoogleFonts.inter(
+                        color: widget.textColor, fontWeight: FontWeight.w500),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.edit, size: 14, color: widget.subTextColor),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Message Input
+            TextField(
+              controller: _messageController,
+              style: GoogleFonts.inter(color: widget.textColor),
+              decoration: InputDecoration(
+                labelText: 'MESSAGE',
+                labelStyle: GoogleFonts.jetBrainsMono(
+                    color: widget.subTextColor, fontSize: 10),
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: widget.subTextColor)),
+                focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: widget.primary)),
+              ),
+              onSubmitted: (val) {
+                if (val.isNotEmpty) {
+                  ref
+                      .read(profileControllerProvider.notifier)
+                      .updateProfile(customNotificationMessage: val);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            // Media Picker
+            Row(
+              children: [
+                Text(
+                  'On Receive Play:',
+                  style: GoogleFonts.inter(
+                      fontSize: 12, color: widget.subTextColor),
+                ),
+                const Spacer(),
+                PopupMenuButton<String>(
+                  icon: Icon(mediaIcon, color: mediaColor),
+                  tooltip: 'Attach Media',
+                  onSelected: (val) {
+                    if (val == 'image') _pickMedia(false);
+                    if (val == 'video') _pickMedia(true);
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'image',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.image, color: Colors.black54),
+                          const SizedBox(width: 8),
+                          Text('Attach Image',
+                              style: GoogleFonts.inter(color: Colors.black)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'video',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.videocam, color: Colors.black54),
+                          const SizedBox(width: 8),
+                          Text('Attach Video',
+                              style: GoogleFonts.inter(color: Colors.black)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                mediaStatus,
+                style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: mediaColor,
+                    fontStyle: FontStyle.italic),
+              ),
+            ),
+          ],
         ],
       ),
     );

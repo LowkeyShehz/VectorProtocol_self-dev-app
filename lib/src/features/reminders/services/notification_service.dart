@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     as fln;
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -17,6 +17,12 @@ class NotificationService {
       fln.FlutterLocalNotificationsPlugin();
 
   final Map<int, Timer> _linuxTimers = {};
+
+  final StreamController<String?> _onNotificationTap =
+      StreamController<String?>.broadcast();
+  Stream<String?> get onNotificationTap => _onNotificationTap.stream;
+
+  String? pendingPayload;
 
   Future<void> init() async {
     tz.initializeTimeZones();
@@ -46,9 +52,23 @@ class NotificationService {
       initializationSettings,
       onDidReceiveNotificationResponse:
           (fln.NotificationResponse response) async {
-        // Handle notification tap
+        if (response.payload != null) {
+          pendingPayload = response.payload;
+          _onNotificationTap.add(response.payload);
+        }
       },
     );
+
+    // Check if app was launched by notification
+    final details =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+    if (details != null &&
+        details.didNotificationLaunchApp &&
+        details.notificationResponse?.payload != null) {
+      pendingPayload = details.notificationResponse?.payload;
+      _onNotificationTap.add(pendingPayload);
+    }
+
     print('NotificationService: init() completed.');
   }
 
@@ -218,6 +238,100 @@ class NotificationService {
     // Cancel range 1000-1049
     for (int i = 0; i < 50; i++) {
       final id = 1000 + i;
+      if (Platform.isLinux) {
+        _linuxTimers[id]?.cancel();
+        _linuxTimers.remove(id);
+      }
+      await flutterLocalNotificationsPlugin.cancel(id);
+    }
+  }
+
+  Future<void> cancelAll() async {
+    if (Platform.isLinux) {
+      for (final timer in _linuxTimers.values) {
+        timer.cancel();
+      }
+      _linuxTimers.clear();
+    }
+    await flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  Future<void> scheduleCustomNotification({
+    required int hour,
+    required int minute,
+    required String message,
+    required String? mediaPath,
+    required bool isVideo,
+  }) async {
+    // ID for custom notification: 2000-2029 (Daily Recurrence)
+    await cancelCustomNotification();
+
+    // Schedule for next 30 days
+    final now = DateTime.now();
+    for (int i = 0; i < 30; i++) {
+      var scheduledDate = DateTime(now.year, now.month, now.day, hour, minute);
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+      scheduledDate = scheduledDate.add(Duration(days: i));
+
+      final id = 2000 + i;
+      final payload = mediaPath != null
+          ? 'custom_media|${isVideo ? "video" : "image"}|$mediaPath'
+          : 'custom_media';
+
+      if (Platform.isLinux) {
+        final delay = scheduledDate.difference(now);
+        if (!delay.isNegative) {
+          _linuxTimers[id] = Timer(delay, () {
+            _showLinuxNotification(id, message, payload);
+            _linuxTimers.remove(id);
+          });
+        }
+      } else {
+        fln.StyleInformation? styleInformation;
+        if (mediaPath != null && !isVideo) {
+          styleInformation = fln.BigPictureStyleInformation(
+            fln.FilePathAndroidBitmap(mediaPath),
+            contentTitle: 'DAILY REMINDER',
+            summaryText: message,
+          );
+        }
+
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          id,
+          'DAILY REMINDER',
+          message,
+          tz.TZDateTime.from(scheduledDate, tz.local),
+          fln.NotificationDetails(
+            android: fln.AndroidNotificationDetails(
+              'level_up_custom',
+              'Custom Notifications',
+              channelDescription: 'User defined daily notifications',
+              importance: fln.Importance.max,
+              priority: fln.Priority.max,
+              fullScreenIntent: true,
+              category: fln.AndroidNotificationCategory.alarm,
+              audioAttributesUsage: fln.AudioAttributesUsage.alarm,
+              visibility: fln.NotificationVisibility.public,
+              playSound: true,
+              enableVibration: true,
+              styleInformation: styleInformation,
+              actions: <fln.AndroidNotificationAction>[
+                const fln.AndroidNotificationAction('view', 'VIEW NOW'),
+              ],
+            ),
+          ),
+          androidScheduleMode: fln.AndroidScheduleMode.exactAllowWhileIdle,
+          payload: payload,
+        );
+      }
+    }
+  }
+
+  Future<void> cancelCustomNotification() async {
+    for (int i = 0; i < 30; i++) {
+      final id = 2000 + i;
       if (Platform.isLinux) {
         _linuxTimers[id]?.cancel();
         _linuxTimers.remove(id);

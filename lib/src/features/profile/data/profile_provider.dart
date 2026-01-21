@@ -6,6 +6,10 @@ import '../domain/profile_model.dart';
 import '../domain/achievement_definitions.dart';
 
 import '../../reminders/services/notification_service.dart';
+import '../../habits/data/habit_provider.dart';
+import '../../todo/data/todo_provider.dart';
+import '../../reminders/data/reminder_provider.dart';
+import '../../dashboard/data/dashboard_provider.dart';
 
 part 'profile_provider.g.dart';
 
@@ -131,15 +135,19 @@ class ProfileController extends _$ProfileController {
     List<String> completedIds = List.from(profile.completedAchievements);
     bool achievementAdded = false;
 
-    if (profile.appStreak >= 3 && !completedIds.contains('streak_3')) {
-      completedIds.add('streak_3');
-      profile.xp += 100;
-      achievementAdded = true;
-    }
-    if (profile.appStreak >= 7 && !completedIds.contains('streak_7')) {
-      completedIds.add('streak_7');
-      profile.xp += 250;
-      achievementAdded = true;
+    for (final achievement in allAchievements) {
+      if (achievement.id.startsWith('streak_') &&
+          !completedIds.contains(achievement.id)) {
+        final parts = achievement.id.split('_');
+        if (parts.length == 2) {
+          final target = int.tryParse(parts[1]) ?? 0;
+          if (target > 0 && profile.appStreak >= target) {
+            completedIds.add(achievement.id);
+            profile.xp += achievement.xpReward;
+            achievementAdded = true;
+          }
+        }
+      }
     }
 
     if (achievementAdded) {
@@ -147,11 +155,11 @@ class ProfileController extends _$ProfileController {
       // Recalculate levels
       int xp = profile.xp;
       int level = profile.level;
-      int threshold = level * 100;
+      int threshold = 150 + (level * 20);
       while (xp >= threshold) {
         xp -= threshold;
         level++;
-        threshold = level * 100;
+        threshold = 150 + (level * 20);
       }
       profile.xp = xp;
       profile.level = level;
@@ -190,7 +198,15 @@ class ProfileController extends _$ProfileController {
     int? level,
     int? totalHabitsCompleted,
     int? totalTodosCompleted,
+    int? totalJournalEntries,
+    int? totalRemindersSet,
     List<String>? completedAchievements,
+    bool? customNotificationEnabled,
+    String? customNotificationMessage,
+    int? customNotificationHour,
+    int? customNotificationMinute,
+    String? customNotificationMediaPath,
+    bool? isCustomNotificationVideo,
   }) async {
     final isar = await ref.watch(isarDbProvider.future);
     final currentProfile = state.value;
@@ -215,17 +231,32 @@ class ProfileController extends _$ProfileController {
           totalHabitsCompleted ?? currentProfile.totalHabitsCompleted
       ..totalTodosCompleted =
           totalTodosCompleted ?? currentProfile.totalTodosCompleted
+      ..totalJournalEntries =
+          totalJournalEntries ?? currentProfile.totalJournalEntries
+      ..totalRemindersSet =
+          totalRemindersSet ?? currentProfile.totalRemindersSet
       ..completedAchievements =
-          completedAchievements ?? currentProfile.completedAchievements;
+          completedAchievements ?? currentProfile.completedAchievements
+      ..customNotificationEnabled =
+          customNotificationEnabled ?? currentProfile.customNotificationEnabled
+      ..customNotificationMessage =
+          customNotificationMessage ?? currentProfile.customNotificationMessage
+      ..customNotificationHour =
+          customNotificationHour ?? currentProfile.customNotificationHour
+      ..customNotificationMinute =
+          customNotificationMinute ?? currentProfile.customNotificationMinute
+      ..customNotificationMediaPath = customNotificationMediaPath ??
+          currentProfile.customNotificationMediaPath
+      ..isCustomNotificationVideo =
+          isCustomNotificationVideo ?? currentProfile.isCustomNotificationVideo;
 
     await isar.writeTxn(() async {
       await isar.profiles.put(updatedProfile);
     });
 
-    // Implement immediate state update to prevent stale reads in sequential calls
     state = AsyncValue.data(updatedProfile);
 
-    // Handle Quote Scheduling if toggled or time changed
+    // DAILY QUOTES LOGIC
     final quotesEnabled =
         dailyQuotesEnabled ?? currentProfile.dailyQuotesEnabled;
     final timeChanged = (motivationHour != null &&
@@ -242,6 +273,39 @@ class ProfileController extends _$ProfileController {
     } else if (dailyQuotesEnabled == false) {
       await NotificationService().cancelDailyQuotes();
     }
+
+    // CUSTOM NOTIFICATION LOGIC
+    final customEnabled =
+        customNotificationEnabled ?? currentProfile.customNotificationEnabled;
+    final customTimeChanged = (customNotificationHour != null &&
+            customNotificationHour != currentProfile.customNotificationHour) ||
+        (customNotificationMinute != null &&
+            customNotificationMinute !=
+                currentProfile.customNotificationMinute);
+    final contentChanged = (customNotificationMessage != null &&
+            customNotificationMessage !=
+                currentProfile.customNotificationMessage) ||
+        (customNotificationMediaPath != null &&
+            customNotificationMediaPath !=
+                currentProfile.customNotificationMediaPath) ||
+        (isCustomNotificationVideo != null &&
+            isCustomNotificationVideo !=
+                currentProfile.isCustomNotificationVideo);
+
+    if (customEnabled &&
+        (customNotificationEnabled == true ||
+            customTimeChanged ||
+            contentChanged)) {
+      await NotificationService().scheduleCustomNotification(
+        hour: updatedProfile.customNotificationHour,
+        minute: updatedProfile.customNotificationMinute,
+        message: updatedProfile.customNotificationMessage,
+        mediaPath: updatedProfile.customNotificationMediaPath,
+        isVideo: updatedProfile.isCustomNotificationVideo,
+      );
+    } else if (customNotificationEnabled == false) {
+      await NotificationService().cancelCustomNotification();
+    }
   }
 
   Future<bool> updateRadarChart(int index, String label, int value) async {
@@ -249,8 +313,6 @@ class ProfileController extends _$ProfileController {
     if (currentProfile == null) return false;
 
     // Check for duplicates
-    // We want to allow keeping the name same if we are just updating value,
-    // but if we are renaming, we must check if OTHER indices have this name.
     bool nameExists = false;
     for (int i = 0; i < currentProfile.radarLabels.length; i++) {
       if (i != index &&
@@ -266,7 +328,6 @@ class ProfileController extends _$ProfileController {
     final newValues = List<int>.from(currentProfile.radarValues);
 
     if (index >= 0 && index < newLabels.length) {
-      // Prevent renaming 'Self Development'
       if (currentProfile.radarLabels[index] == 'Self Development') {
         newLabels[index] = 'Self Development';
       } else {
@@ -286,7 +347,6 @@ class ProfileController extends _$ProfileController {
 
     if (currentProfile.radarLabels.length >= 8) return false;
 
-    // Duplicate check
     if (currentProfile.radarLabels
         .any((l) => l.toLowerCase() == name.toLowerCase())) {
       return false;
@@ -309,7 +369,6 @@ class ProfileController extends _$ProfileController {
     final newValues = List<int>.from(currentProfile.radarValues);
 
     if (index >= 0 && index < newLabels.length) {
-      // Prevent removing 'Self Development'
       if (newLabels[index] == 'Self Development') return;
 
       newLabels.removeAt(index);
@@ -326,8 +385,7 @@ class ProfileController extends _$ProfileController {
     int newLevel = currentProfile.level;
 
     if (amount > 0) {
-      // Threshold for Level L to L+1: 100 + (L * 15)
-      int getThreshold(int lvl) => 100 + (lvl * 15);
+      int getThreshold(int lvl) => 150 + (lvl * 20);
 
       int threshold = getThreshold(newLevel);
       while (newXp >= threshold) {
@@ -336,11 +394,10 @@ class ProfileController extends _$ProfileController {
         threshold = getThreshold(newLevel);
       }
     } else {
-      // Logic for losing XP (level down)
       while (newXp < 0 && newLevel > 1) {
         newLevel--;
         int threshold =
-            100 + (newLevel * 15); // Threshold of the previous level
+            150 + (newLevel * 20); // Threshold of the previous leveld;
         newXp += threshold;
       }
       if (newXp < 0) newXp = 0;
@@ -363,22 +420,33 @@ class ProfileController extends _$ProfileController {
       if (completedIds.contains(achievement.id)) continue;
 
       bool met = false;
-      switch (achievement.id) {
-        case 'habit_1':
-          met = currentProfile.totalHabitsCompleted >= 1;
-          break;
-        case 'streak_3':
-          met = currentProfile.appStreak >= 3;
-          break;
-        case 'streak_7':
-          met = currentProfile.appStreak >= 7;
-          break;
-        case 'level_5':
-          met = currentProfile.level >= 5;
-          break;
-        case 'todo_10':
-          met = currentProfile.totalTodosCompleted >= 10;
-          break;
+      final parts = achievement.id.split('_');
+      if (parts.length == 2) {
+        final type = parts[0];
+        final target = int.tryParse(parts[1]) ?? 0;
+
+        if (target > 0) {
+          switch (type) {
+            case 'habit':
+              met = currentProfile.totalHabitsCompleted >= target;
+              break;
+            case 'streak':
+              met = currentProfile.appStreak >= target;
+              break;
+            case 'level':
+              met = currentProfile.level >= target;
+              break;
+            case 'todo':
+              met = currentProfile.totalTodosCompleted >= target;
+              break;
+            case 'journal':
+              met = currentProfile.totalJournalEntries >= target;
+              break;
+            case 'reminder':
+              met = currentProfile.totalRemindersSet >= target;
+              break;
+          }
+        }
       }
 
       if (met) {
@@ -389,6 +457,8 @@ class ProfileController extends _$ProfileController {
     }
 
     if (changed) {
+      // Must update list first to avoid re-triggering loop if addXp calls checkAchievements again
+      // Although addXp calls checkAchievements, passing updated list prevents infinite loop
       await updateProfile(completedAchievements: completedIds);
       if (xpToAdd > 0) {
         await addXp(xpToAdd);
@@ -411,6 +481,7 @@ class ProfileController extends _$ProfileController {
               ? currentProfile.totalHabitsCompleted - 1
               : 0);
       await addXp(-10);
+      // We don't revoke achievements on undoing action usually
     }
   }
 
@@ -430,5 +501,46 @@ class ProfileController extends _$ProfileController {
               : 0);
       await addXp(-20);
     }
+  }
+
+  Future<void> reportJournalEntry() async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    await updateProfile(
+        totalJournalEntries: currentProfile.totalJournalEntries + 1);
+    await addXp(15);
+    await checkAchievements();
+  }
+
+  Future<void> reportReminderCreation() async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    await updateProfile(
+        totalRemindersSet: currentProfile.totalRemindersSet + 1);
+    await addXp(5);
+    await checkAchievements();
+  }
+
+  Future<void> resetAllData() async {
+    final isar = await ref.read(isarDbProvider.future);
+
+    // Clear all data
+    await isar.writeTxn(() async {
+      await isar.clear();
+    });
+
+    // Cancel all notifications
+    await NotificationService().cancelAll();
+
+    // Invalidate state to trigger rebuild/re-init across the app
+    ref.invalidateSelf();
+    ref.invalidate(habitControllerProvider);
+    ref.invalidate(todoControllerProvider);
+    ref.invalidate(reminderControllerProvider);
+    // Also invalidate dashboard metrics which depend on these
+    ref.invalidate(dashboardRadarStatsProvider);
+    ref.invalidate(dashboardTimeFilterProvider);
   }
 }

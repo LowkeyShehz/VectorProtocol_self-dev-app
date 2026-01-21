@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:level_up/src/features/common/data/isar_service.dart';
 import 'package:level_up/src/features/journal/domain/journal_entry_model.dart';
+import '../../profile/data/profile_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:isar/isar.dart';
 
@@ -24,6 +25,10 @@ class JournalController extends _$JournalController {
     await isar.writeTxn(() async {
       await isar.journalEntrys.put(entry);
     });
+
+    // Check achievements
+    ref.read(profileControllerProvider.notifier).reportJournalEntry();
+
     ref.invalidateSelf();
   }
 

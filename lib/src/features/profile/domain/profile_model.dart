@@ -28,6 +28,15 @@ class Profile {
 
   int totalHabitsCompleted = 0;
   int totalTodosCompleted = 0;
+  int totalJournalEntries = 0;
+  int totalRemindersSet = 0;
+
+  bool customNotificationEnabled = false;
+  String customNotificationMessage = '';
+  int customNotificationHour = 20;
+  int customNotificationMinute = 0;
+  String? customNotificationMediaPath;
+  bool isCustomNotificationVideo = false;
 
   List<String> completedAchievements = [];
 
@@ -47,6 +56,14 @@ class Profile {
     this.lastAppOpenDate,
     this.totalHabitsCompleted = 0,
     this.totalTodosCompleted = 0,
+    this.totalJournalEntries = 0,
+    this.totalRemindersSet = 0,
     this.completedAchievements = const [],
+    this.customNotificationEnabled = false,
+    this.customNotificationMessage = "It's time to Level Up!",
+    this.customNotificationHour = 20,
+    this.customNotificationMinute = 0,
+    this.customNotificationMediaPath,
+    this.isCustomNotificationVideo = false,
   });
 }

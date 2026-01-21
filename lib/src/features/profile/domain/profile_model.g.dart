@@ -27,63 +27,103 @@ const ProfileSchema = CollectionSchema(
       name: r'completedAchievements',
       type: IsarType.stringList,
     ),
-    r'dailyQuotesEnabled': PropertySchema(
+    r'customNotificationEnabled': PropertySchema(
       id: 2,
+      name: r'customNotificationEnabled',
+      type: IsarType.bool,
+    ),
+    r'customNotificationHour': PropertySchema(
+      id: 3,
+      name: r'customNotificationHour',
+      type: IsarType.long,
+    ),
+    r'customNotificationMediaPath': PropertySchema(
+      id: 4,
+      name: r'customNotificationMediaPath',
+      type: IsarType.string,
+    ),
+    r'customNotificationMessage': PropertySchema(
+      id: 5,
+      name: r'customNotificationMessage',
+      type: IsarType.string,
+    ),
+    r'customNotificationMinute': PropertySchema(
+      id: 6,
+      name: r'customNotificationMinute',
+      type: IsarType.long,
+    ),
+    r'dailyQuotesEnabled': PropertySchema(
+      id: 7,
       name: r'dailyQuotesEnabled',
       type: IsarType.bool,
     ),
+    r'isCustomNotificationVideo': PropertySchema(
+      id: 8,
+      name: r'isCustomNotificationVideo',
+      type: IsarType.bool,
+    ),
     r'isDarkMode': PropertySchema(
-      id: 3,
+      id: 9,
       name: r'isDarkMode',
       type: IsarType.bool,
     ),
     r'lastAppOpenDate': PropertySchema(
-      id: 4,
+      id: 10,
       name: r'lastAppOpenDate',
       type: IsarType.dateTime,
     ),
     r'level': PropertySchema(
-      id: 5,
+      id: 11,
       name: r'level',
       type: IsarType.long,
     ),
     r'motivationHour': PropertySchema(
-      id: 6,
+      id: 12,
       name: r'motivationHour',
       type: IsarType.long,
     ),
     r'motivationMinute': PropertySchema(
-      id: 7,
+      id: 13,
       name: r'motivationMinute',
       type: IsarType.long,
     ),
     r'radarLabels': PropertySchema(
-      id: 8,
+      id: 14,
       name: r'radarLabels',
       type: IsarType.stringList,
     ),
     r'radarValues': PropertySchema(
-      id: 9,
+      id: 15,
       name: r'radarValues',
       type: IsarType.longList,
     ),
     r'totalHabitsCompleted': PropertySchema(
-      id: 10,
+      id: 16,
       name: r'totalHabitsCompleted',
       type: IsarType.long,
     ),
+    r'totalJournalEntries': PropertySchema(
+      id: 17,
+      name: r'totalJournalEntries',
+      type: IsarType.long,
+    ),
+    r'totalRemindersSet': PropertySchema(
+      id: 18,
+      name: r'totalRemindersSet',
+      type: IsarType.long,
+    ),
     r'totalTodosCompleted': PropertySchema(
-      id: 11,
+      id: 19,
       name: r'totalTodosCompleted',
       type: IsarType.long,
     ),
     r'username': PropertySchema(
-      id: 12,
+      id: 20,
       name: r'username',
       type: IsarType.string,
     ),
     r'xp': PropertySchema(
-      id: 13,
+      id: 21,
       name: r'xp',
       type: IsarType.long,
     )
@@ -115,6 +155,13 @@ int _profileEstimateSize(
       bytesCount += value.length * 3;
     }
   }
+  {
+    final value = object.customNotificationMediaPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.customNotificationMessage.length * 3;
   bytesCount += 3 + object.radarLabels.length * 3;
   {
     for (var i = 0; i < object.radarLabels.length; i++) {
@@ -135,18 +182,26 @@ void _profileSerialize(
 ) {
   writer.writeLong(offsets[0], object.appStreak);
   writer.writeStringList(offsets[1], object.completedAchievements);
-  writer.writeBool(offsets[2], object.dailyQuotesEnabled);
-  writer.writeBool(offsets[3], object.isDarkMode);
-  writer.writeDateTime(offsets[4], object.lastAppOpenDate);
-  writer.writeLong(offsets[5], object.level);
-  writer.writeLong(offsets[6], object.motivationHour);
-  writer.writeLong(offsets[7], object.motivationMinute);
-  writer.writeStringList(offsets[8], object.radarLabels);
-  writer.writeLongList(offsets[9], object.radarValues);
-  writer.writeLong(offsets[10], object.totalHabitsCompleted);
-  writer.writeLong(offsets[11], object.totalTodosCompleted);
-  writer.writeString(offsets[12], object.username);
-  writer.writeLong(offsets[13], object.xp);
+  writer.writeBool(offsets[2], object.customNotificationEnabled);
+  writer.writeLong(offsets[3], object.customNotificationHour);
+  writer.writeString(offsets[4], object.customNotificationMediaPath);
+  writer.writeString(offsets[5], object.customNotificationMessage);
+  writer.writeLong(offsets[6], object.customNotificationMinute);
+  writer.writeBool(offsets[7], object.dailyQuotesEnabled);
+  writer.writeBool(offsets[8], object.isCustomNotificationVideo);
+  writer.writeBool(offsets[9], object.isDarkMode);
+  writer.writeDateTime(offsets[10], object.lastAppOpenDate);
+  writer.writeLong(offsets[11], object.level);
+  writer.writeLong(offsets[12], object.motivationHour);
+  writer.writeLong(offsets[13], object.motivationMinute);
+  writer.writeStringList(offsets[14], object.radarLabels);
+  writer.writeLongList(offsets[15], object.radarValues);
+  writer.writeLong(offsets[16], object.totalHabitsCompleted);
+  writer.writeLong(offsets[17], object.totalJournalEntries);
+  writer.writeLong(offsets[18], object.totalRemindersSet);
+  writer.writeLong(offsets[19], object.totalTodosCompleted);
+  writer.writeString(offsets[20], object.username);
+  writer.writeLong(offsets[21], object.xp);
 }
 
 Profile _profileDeserialize(
@@ -158,19 +213,27 @@ Profile _profileDeserialize(
   final object = Profile();
   object.appStreak = reader.readLong(offsets[0]);
   object.completedAchievements = reader.readStringList(offsets[1]) ?? [];
-  object.dailyQuotesEnabled = reader.readBool(offsets[2]);
+  object.customNotificationEnabled = reader.readBool(offsets[2]);
+  object.customNotificationHour = reader.readLong(offsets[3]);
+  object.customNotificationMediaPath = reader.readStringOrNull(offsets[4]);
+  object.customNotificationMessage = reader.readString(offsets[5]);
+  object.customNotificationMinute = reader.readLong(offsets[6]);
+  object.dailyQuotesEnabled = reader.readBool(offsets[7]);
   object.id = id;
-  object.isDarkMode = reader.readBool(offsets[3]);
-  object.lastAppOpenDate = reader.readDateTimeOrNull(offsets[4]);
-  object.level = reader.readLong(offsets[5]);
-  object.motivationHour = reader.readLong(offsets[6]);
-  object.motivationMinute = reader.readLong(offsets[7]);
-  object.radarLabels = reader.readStringList(offsets[8]) ?? [];
-  object.radarValues = reader.readLongList(offsets[9]) ?? [];
-  object.totalHabitsCompleted = reader.readLong(offsets[10]);
-  object.totalTodosCompleted = reader.readLong(offsets[11]);
-  object.username = reader.readString(offsets[12]);
-  object.xp = reader.readLong(offsets[13]);
+  object.isCustomNotificationVideo = reader.readBool(offsets[8]);
+  object.isDarkMode = reader.readBool(offsets[9]);
+  object.lastAppOpenDate = reader.readDateTimeOrNull(offsets[10]);
+  object.level = reader.readLong(offsets[11]);
+  object.motivationHour = reader.readLong(offsets[12]);
+  object.motivationMinute = reader.readLong(offsets[13]);
+  object.radarLabels = reader.readStringList(offsets[14]) ?? [];
+  object.radarValues = reader.readLongList(offsets[15]) ?? [];
+  object.totalHabitsCompleted = reader.readLong(offsets[16]);
+  object.totalJournalEntries = reader.readLong(offsets[17]);
+  object.totalRemindersSet = reader.readLong(offsets[18]);
+  object.totalTodosCompleted = reader.readLong(offsets[19]);
+  object.username = reader.readString(offsets[20]);
+  object.xp = reader.readLong(offsets[21]);
   return object;
 }
 
@@ -188,26 +251,42 @@ P _profileDeserializeProp<P>(
     case 2:
       return (reader.readBool(offset)) as P;
     case 3:
-      return (reader.readBool(offset)) as P;
-    case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 5:
       return (reader.readLong(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
     case 6:
       return (reader.readLong(offset)) as P;
     case 7:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 8:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readBool(offset)) as P;
     case 9:
-      return (reader.readLongList(offset) ?? []) as P;
+      return (reader.readBool(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 11:
       return (reader.readLong(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 13:
+      return (reader.readLong(offset)) as P;
+    case 14:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 15:
+      return (reader.readLongList(offset) ?? []) as P;
+    case 16:
+      return (reader.readLong(offset)) as P;
+    case 17:
+      return (reader.readLong(offset)) as P;
+    case 18:
+      return (reader.readLong(offset)) as P;
+    case 19:
+      return (reader.readLong(offset)) as P;
+    case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -584,6 +663,422 @@ extension ProfileQueryFilter
   }
 
   QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationEnabledEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customNotificationEnabled',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationHourEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customNotificationHour',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationHourGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'customNotificationHour',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationHourLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'customNotificationHour',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationHourBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'customNotificationHour',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'customNotificationMediaPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'customNotificationMediaPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customNotificationMediaPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'customNotificationMediaPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'customNotificationMediaPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'customNotificationMediaPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'customNotificationMediaPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'customNotificationMediaPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'customNotificationMediaPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'customNotificationMediaPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customNotificationMediaPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMediaPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'customNotificationMediaPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customNotificationMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'customNotificationMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'customNotificationMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'customNotificationMessage',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'customNotificationMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'customNotificationMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'customNotificationMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'customNotificationMessage',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customNotificationMessage',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMessageIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'customNotificationMessage',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMinuteEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customNotificationMinute',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMinuteGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'customNotificationMinute',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMinuteLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'customNotificationMinute',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      customNotificationMinuteBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'customNotificationMinute',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
       dailyQuotesEnabledEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -641,6 +1136,16 @@ extension ProfileQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      isCustomNotificationVideoEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isCustomNotificationVideo',
+        value: value,
       ));
     });
   }
@@ -1314,6 +1819,118 @@ extension ProfileQueryFilter
   }
 
   QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalJournalEntriesEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalJournalEntries',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalJournalEntriesGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'totalJournalEntries',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalJournalEntriesLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'totalJournalEntries',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalJournalEntriesBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'totalJournalEntries',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalRemindersSetEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalRemindersSet',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalRemindersSetGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'totalRemindersSet',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalRemindersSetLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'totalRemindersSet',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
+      totalRemindersSetBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'totalRemindersSet',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterFilterCondition>
       totalTodosCompletedEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1571,6 +2188,75 @@ extension ProfileQuerySortBy on QueryBuilder<Profile, Profile, QSortBy> {
     });
   }
 
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> sortByCustomNotificationHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationHour', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationHourDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationHour', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationMediaPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMediaPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationMediaPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMediaPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationMessage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMessage', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationMessageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMessage', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationMinute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMinute', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByCustomNotificationMinuteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMinute', Sort.desc);
+    });
+  }
+
   QueryBuilder<Profile, Profile, QAfterSortBy> sortByDailyQuotesEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dailyQuotesEnabled', Sort.asc);
@@ -1580,6 +2266,20 @@ extension ProfileQuerySortBy on QueryBuilder<Profile, Profile, QSortBy> {
   QueryBuilder<Profile, Profile, QAfterSortBy> sortByDailyQuotesEnabledDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dailyQuotesEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByIsCustomNotificationVideo() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCustomNotificationVideo', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      sortByIsCustomNotificationVideoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCustomNotificationVideo', Sort.desc);
     });
   }
 
@@ -1656,6 +2356,30 @@ extension ProfileQuerySortBy on QueryBuilder<Profile, Profile, QSortBy> {
     });
   }
 
+  QueryBuilder<Profile, Profile, QAfterSortBy> sortByTotalJournalEntries() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalJournalEntries', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> sortByTotalJournalEntriesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalJournalEntries', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> sortByTotalRemindersSet() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalRemindersSet', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> sortByTotalRemindersSetDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalRemindersSet', Sort.desc);
+    });
+  }
+
   QueryBuilder<Profile, Profile, QAfterSortBy> sortByTotalTodosCompleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'totalTodosCompleted', Sort.asc);
@@ -1707,6 +2431,75 @@ extension ProfileQuerySortThenBy
     });
   }
 
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> thenByCustomNotificationHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationHour', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationHourDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationHour', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationMediaPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMediaPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationMediaPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMediaPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationMessage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMessage', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationMessageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMessage', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationMinute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMinute', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByCustomNotificationMinuteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customNotificationMinute', Sort.desc);
+    });
+  }
+
   QueryBuilder<Profile, Profile, QAfterSortBy> thenByDailyQuotesEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dailyQuotesEnabled', Sort.asc);
@@ -1728,6 +2521,20 @@ extension ProfileQuerySortThenBy
   QueryBuilder<Profile, Profile, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByIsCustomNotificationVideo() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCustomNotificationVideo', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy>
+      thenByIsCustomNotificationVideoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCustomNotificationVideo', Sort.desc);
     });
   }
 
@@ -1804,6 +2611,30 @@ extension ProfileQuerySortThenBy
     });
   }
 
+  QueryBuilder<Profile, Profile, QAfterSortBy> thenByTotalJournalEntries() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalJournalEntries', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> thenByTotalJournalEntriesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalJournalEntries', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> thenByTotalRemindersSet() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalRemindersSet', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QAfterSortBy> thenByTotalRemindersSetDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalRemindersSet', Sort.desc);
+    });
+  }
+
   QueryBuilder<Profile, Profile, QAfterSortBy> thenByTotalTodosCompleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'totalTodosCompleted', Sort.asc);
@@ -1855,9 +2686,52 @@ extension ProfileQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Profile, Profile, QDistinct>
+      distinctByCustomNotificationEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'customNotificationEnabled');
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QDistinct> distinctByCustomNotificationHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'customNotificationHour');
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QDistinct>
+      distinctByCustomNotificationMediaPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'customNotificationMediaPath',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QDistinct> distinctByCustomNotificationMessage(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'customNotificationMessage',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QDistinct>
+      distinctByCustomNotificationMinute() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'customNotificationMinute');
+    });
+  }
+
   QueryBuilder<Profile, Profile, QDistinct> distinctByDailyQuotesEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'dailyQuotesEnabled');
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QDistinct>
+      distinctByIsCustomNotificationVideo() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isCustomNotificationVideo');
     });
   }
 
@@ -1909,6 +2783,18 @@ extension ProfileQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Profile, Profile, QDistinct> distinctByTotalJournalEntries() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'totalJournalEntries');
+    });
+  }
+
+  QueryBuilder<Profile, Profile, QDistinct> distinctByTotalRemindersSet() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'totalRemindersSet');
+    });
+  }
+
   QueryBuilder<Profile, Profile, QDistinct> distinctByTotalTodosCompleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'totalTodosCompleted');
@@ -1950,9 +2836,51 @@ extension ProfileQueryProperty
     });
   }
 
+  QueryBuilder<Profile, bool, QQueryOperations>
+      customNotificationEnabledProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'customNotificationEnabled');
+    });
+  }
+
+  QueryBuilder<Profile, int, QQueryOperations>
+      customNotificationHourProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'customNotificationHour');
+    });
+  }
+
+  QueryBuilder<Profile, String?, QQueryOperations>
+      customNotificationMediaPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'customNotificationMediaPath');
+    });
+  }
+
+  QueryBuilder<Profile, String, QQueryOperations>
+      customNotificationMessageProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'customNotificationMessage');
+    });
+  }
+
+  QueryBuilder<Profile, int, QQueryOperations>
+      customNotificationMinuteProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'customNotificationMinute');
+    });
+  }
+
   QueryBuilder<Profile, bool, QQueryOperations> dailyQuotesEnabledProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'dailyQuotesEnabled');
+    });
+  }
+
+  QueryBuilder<Profile, bool, QQueryOperations>
+      isCustomNotificationVideoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isCustomNotificationVideo');
     });
   }
 
@@ -2001,6 +2929,18 @@ extension ProfileQueryProperty
   QueryBuilder<Profile, int, QQueryOperations> totalHabitsCompletedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'totalHabitsCompleted');
+    });
+  }
+
+  QueryBuilder<Profile, int, QQueryOperations> totalJournalEntriesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'totalJournalEntries');
+    });
+  }
+
+  QueryBuilder<Profile, int, QQueryOperations> totalRemindersSetProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'totalRemindersSet');
     });
   }
 

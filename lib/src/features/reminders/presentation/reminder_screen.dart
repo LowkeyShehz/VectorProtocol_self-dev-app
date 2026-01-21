@@ -149,9 +149,10 @@ class _StickyHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 60,
-      color: Colors.black.withOpacity(0.9),
+      color: (isDark ? Colors.black : Colors.white).withOpacity(0.9),
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
@@ -179,12 +180,18 @@ class _ReminderTile extends ConsumerWidget {
     final isToday = item.remindAt.year == now.year &&
         item.remindAt.month == now.month &&
         item.remindAt.day == now.day;
-    final isArchived = isPast && !isToday; // Key archived check
+    final isArchived = isPast && !isToday;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Visual styles for archived items
-    final textColor = isArchived ? Colors.grey : Colors.white;
-    final timeColor =
-        isArchived ? Colors.white24 : (isPast ? Colors.white38 : Colors.white);
+    final textColor =
+        isArchived ? Colors.grey : (isDark ? Colors.white : Colors.black);
+    final timeColor = isArchived
+        ? (isDark ? Colors.white24 : Colors.black26)
+        : (isPast
+            ? (isDark ? Colors.white38 : Colors.black38)
+            : (isDark ? Colors.white : Colors.black));
+
     final decoration = isArchived ? TextDecoration.lineThrough : null;
     final badgeColor = isArchived ? Colors.grey : primary;
 
@@ -193,7 +200,7 @@ class _ReminderTile extends ConsumerWidget {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          backgroundColor: const Color(0xFF111111),
+          backgroundColor: isDark ? const Color(0xFF111111) : Colors.white,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -204,7 +211,10 @@ class _ReminderTile extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(isArchived ? 0.02 : 0.05),
+          color: isDark
+              ? Colors.white.withOpacity(isArchived ? 0.02 : 0.05)
+              : Colors.grey.withOpacity(
+                  isArchived ? 0.05 : 0.2), // Light gray for light mode
           borderRadius: BorderRadius.circular(12),
           border: Border(
               left: BorderSide(
@@ -221,13 +231,13 @@ class _ReminderTile extends ConsumerWidget {
                     color: timeColor,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    decoration: decoration, // Strike time
+                    decoration: decoration,
                   ),
                 ),
                 Text(
                   DateFormat('MMM d').format(item.remindAt),
                   style: GoogleFonts.inter(
-                    color: Colors.white24,
+                    color: isDark ? Colors.white24 : Colors.black38,
                     fontSize: 10,
                   ),
                 ),
@@ -241,7 +251,10 @@ class _ReminderTile extends ConsumerWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   image: DecorationImage(
-                    image: FileImage(File(item.imagePath!)),
+                    image: ResizeImage(
+                      FileImage(File(item.imagePath!)),
+                      width: 150,
+                    ),
                     fit: BoxFit.cover,
                     opacity: isArchived ? 0.5 : 1.0,
                   ),
@@ -253,12 +266,13 @@ class _ReminderTile extends ConsumerWidget {
               child: Text(
                 item.title,
                 style: GoogleFonts.inter(
-                  color: item.isActive ? textColor : Colors.white24,
+                  color: item.isActive
+                      ? textColor
+                      : (isDark ? Colors.white24 : Colors.black26),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  decoration: !item.isActive
-                      ? TextDecoration.lineThrough
-                      : decoration, // Strike title if inactive OR archived
+                  decoration:
+                      !item.isActive ? TextDecoration.lineThrough : decoration,
                 ),
               ),
             ),
@@ -271,7 +285,7 @@ class _ReminderTile extends ConsumerWidget {
                       .toggleReminder(item.id);
                 },
                 activeColor: primary,
-                inactiveTrackColor: Colors.white10,
+                inactiveTrackColor: isDark ? Colors.white10 : Colors.black12,
               ),
           ],
         ),
@@ -285,17 +299,21 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.notifications_off_outlined,
-              size: 64, color: Colors.white.withOpacity(0.1)),
+              size: 64,
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.1)),
           const SizedBox(height: 16),
           Text(
             'NO ACTIVE SIGNALS',
             style: GoogleFonts.jetBrainsMono(
-              color: Colors.white54,
+              color: isDark ? Colors.white54 : Colors.black54,
               fontSize: 16,
             ),
           ),
@@ -346,6 +364,7 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
     final isEditing = widget.existingItem != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -364,7 +383,7 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
                 Text(
                   isEditing ? 'EDIT SIGNAL' : 'NEW SIGNAL',
                   style: GoogleFonts.jetBrainsMono(
-                    color: Colors.white,
+                    color: isDark ? Colors.white : Colors.black,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -373,13 +392,14 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
                   children: [
                     IconButton(
                       onPressed: () => _pickImage(ImageSource.camera),
-                      icon: const Icon(Icons.camera_alt, color: Colors.white70),
+                      icon: Icon(Icons.camera_alt,
+                          color: isDark ? Colors.white70 : Colors.black54),
                       tooltip: 'Take Photo',
                     ),
                     IconButton(
                       onPressed: () => _pickImage(ImageSource.gallery),
-                      icon: const Icon(Icons.photo_library,
-                          color: Colors.white70),
+                      icon: Icon(Icons.photo_library,
+                          color: isDark ? Colors.white70 : Colors.black54),
                       tooltip: 'Choose from Gallery',
                     ),
                     if (isEditing)
@@ -429,11 +449,16 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
 
             TextField(
               controller: _titleController,
-              style: GoogleFonts.inter(color: Colors.white),
+              style: GoogleFonts.inter(
+                  color: isDark ? Colors.white : Colors.black),
               decoration: InputDecoration(
                 hintText: 'Reminder Title',
+                hintStyle: GoogleFonts.inter(
+                    color: isDark ? Colors.white24 : Colors.black26),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.05),
+                fillColor: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.grey.shade200,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -445,11 +470,12 @@ class _CreateReminderModalState extends ConsumerState<_CreateReminderModal> {
             SizedBox(
               height: 180,
               child: CupertinoTheme(
-                data: const CupertinoThemeData(
-                  brightness: Brightness.dark,
+                data: CupertinoThemeData(
+                  brightness: isDark ? Brightness.dark : Brightness.light,
                   textTheme: CupertinoTextThemeData(
-                    pickerTextStyle:
-                        TextStyle(color: Colors.white, fontSize: 16),
+                    pickerTextStyle: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontSize: 16),
                   ),
                 ),
                 child: CupertinoDatePicker(
